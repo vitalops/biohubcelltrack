@@ -1,0 +1,19 @@
+{
+  "id": "abhijithneilabraham/biohub-mitosis-gate",
+  "title": "biohub-mitosis-gate",
+  "code_file": "biohub-mitosis-gate.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "abhijithneilabraham/biohub-training-zarr-wheels"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -1,18 +1,19 @@
 {
-  "id": "abhijithneilabraham/solution",
-  "title": "solution",
-  "code_file": "solution.ipynb",
+  "id": "abhijithneilabraham/biohub-submit-full",
+  "title": "biohub-submit-full",
+  "code_file": "biohub-submit-full.ipynb",
   "language": "python",
   "kernel_type": "notebook",
-  "is_private": false,
+  "is_private": true,
   "enable_gpu": true,
   "enable_tpu": false,
   "enable_internet": false,
   "dataset_sources": [
+    "pilkwang/biohub-deepcenter-unet3d-center-prior-v1",
+    "pilkwang/biohub-temporal-unet3d-seed314159-v1",
     "pilkwang/biohub-tracking-support-pack-50ep-v1",
-    "pilkwang/pilkwang-public-dataset-for-notebooks-figures",
     "subinium/pytorch251-cu118-p100-wheelhouse-public",
-    "abhijithneilabraham/biohub-fullframecenter-weights"
+    "abhijithneilabraham/biohub-mitosis-gate-v1"
   ],
   "competition_sources": [
     "biohub-cell-tracking-during-development"
