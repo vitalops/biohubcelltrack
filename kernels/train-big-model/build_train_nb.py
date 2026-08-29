@@ -212,7 +212,10 @@ import subprocess, sys, os, time
 env = dict(os.environ)
 import torch as _t
 _is_t4 = _t.cuda.is_available() and _t.cuda.get_device_capability(0) >= (7, 5)
-_batch = "16" if _is_t4 else "4"
+_batch = "8" if _is_t4 else "4"
+if not _is_t4 and os.environ.get("BIOHUB_REQUIRE_T4", "1") != "0":
+    print("Non-T4 GPU detected; skipping big-model training (API auto-run guard). UI-save on T4 x2 to train.")
+    import sys as _sys; _sys.exit(0)
 _warm = ""
 import glob as _g
 _prev = sorted(_g.glob("/kaggle/input/*/bigmodel/edge_predictor_last.pth")) +         sorted(_g.glob("/kaggle/input/**/bigmodel/edge_predictor_last.pth"))
