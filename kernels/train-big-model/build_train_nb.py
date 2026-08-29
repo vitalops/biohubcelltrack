@@ -58,7 +58,8 @@ if r.returncode != 0:
     for p in pkgs:
         subprocess.run([sys.executable,"-m","pip","install","-q","--no-index","--find-links",str(wheels),p])
 
-WARM = SP / "weights/unet_transformer/split_0/edge_predictor_best.pth"  # unused in big-model scratch run
+WARM = SP / "weights/unet_transformer/split_0/edge_predictor_best.pth"
+assert WARM.is_file()
 
 DATA_ROOT = None
 for cand in ["/kaggle/input/competitions/biohub-cell-tracking-during-development",
@@ -212,33 +213,27 @@ import subprocess, sys, os, time
 env = dict(os.environ)
 import torch as _t
 _is_t4 = _t.cuda.is_available() and _t.cuda.get_device_capability(0) >= (7, 5)
-_batch = "8" if _is_t4 else "4"
+_batch = "16" if _is_t4 else "4"
 if not _is_t4 and os.environ.get("BIOHUB_REQUIRE_T4", "1") != "0":
     print("Non-T4 GPU detected; skipping big-model training (API auto-run guard). UI-save on T4 x2 to train.")
     import sys as _sys; _sys.exit(0)
-_warm = ""
-import glob as _g
-_prev = sorted(_g.glob("/kaggle/input/*/bigmodel/edge_predictor_last.pth")) +         sorted(_g.glob("/kaggle/input/**/bigmodel/edge_predictor_last.pth"))
-if _prev:
-    _warm = _prev[-1]
-    print("CHAINED WARM START:", _warm)
+_warm = str(WARM)
+print("THIRD-SEED WARM START:", _warm)
 env.update({
     "PYTHONPATH": str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", ""),
     "BIOHUB_WARM_START": _warm,
     "BIOHUB_DIV_LOSS_WEIGHT": "1.0",
-    "BIOHUB_TRAIN_SEED": "31337",
-    "BIOHUB_TRAIN_TIME_CAP_H": "10.5",
+    "BIOHUB_TRAIN_SEED": "424242",
+    "BIOHUB_TRAIN_TIME_CAP_H": "9.0",
     "BIOHUB_MAX_TRAIN_VIDEOS": "0",
 })
 cmd = [sys.executable, "scripts/train_unet_transformer.py",
        "--data-dir", str(TRAIN_DIR),
        "--splits", "/kaggle/working/ft_splits.json",
        "--split", "0",
-       "--epochs", "60",
-       "--lr", "1e-4" if not _warm else "6e-5",
+       "--epochs", "30",
+       "--lr", "5e-5",
        "--batch-size", _batch,
-       "--unet-layers", "48,96,192",
-       "--unet-out-channels", "48",
        "--num-workers", "4"]
 print("cmd:", " ".join(cmd)); sys.stdout.flush()
 t0 = time.time()
@@ -254,7 +249,7 @@ from pathlib import Path
 SRC = REPO / "weights/unet_transformer/split_0"
 DST = Path("/kaggle/working/bigmodel")
 DST.mkdir(parents=True, exist_ok=True)
-manifest = {"artifact_name": "biohub-edge-big-48-96-192-seed31337", "model": {}}
+manifest = {"artifact_name": "biohub-edge-thirdseed-424242", "model": {}}
 for f in ["edge_predictor_best.pth", "edge_predictor_last.pth", "config.json"]:
     p = SRC / f
     if p.exists():
