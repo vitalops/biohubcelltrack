@@ -36,7 +36,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
-- Prune-arm test (pushed, awaiting run) and gate-threshold sweep (0.35/0.65)
-- Gate v2: richer features, more positives
-- Big model: full sessions after weekly GPU quota reset (Sat 00:00 UTC)
-- Third-seed ensemble; graph-level ensembling of pipeline variants
+- Wide-radii + gate submission (code verified; awaiting a correctly-configured T4 save — NOTE: every API push resets the kernel accelerator, re-select T4 x2 on every save)
+- Three-seed blend: third seed trained (warm-start seed 424242, 4 epochs, val acc*recall 0.9797) → dataset `abhijithneilabraham/biohub-edge-thirdseed-424242-v1` (weights.tar); integration = extend the dual-seed logit blend in the inference cell
+- Gate v2: richer features (DeepCenter scores, edge probs), threshold sweep
+- Prune arm tested: neutral at 0.15 (LB 0.935 = unchanged); big-model scratch training abandoned (4.2h/epoch uneconomical)
