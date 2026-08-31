@@ -18,6 +18,8 @@
   "competition_sources": [
     "biohub-cell-tracking-during-development"
   ],
-  "kernel_sources": [],
+  "kernel_sources": [
+    "abhijithneilabraham/biohub-soup"
+  ],
   "model_sources": []
 }
