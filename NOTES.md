@@ -9,7 +9,9 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Aug 26 | merge + comboD + DET 0.965 | 0.918 | first T4 notebook submission |
 | Aug 27 | v91 merge (harmonic core), no comboD | 0.924 | validator ordering inverted vs LB |
 | Aug 27 | ritesh-exact reproduction | 0.926 | anchor base |
-| Aug 28 | **ritesh + mitosis gate (prob ≥ 0.5)** | **0.935** | **top-50; +0.009 from our learned division gate** |
+| Aug 28 | ritesh + mitosis gate (prob ≥ 0.5) | 0.935 | top-50; +0.009 from our learned division gate |
+| Aug 30 | ritesh + gate + prune 0.15 | 0.935 | prune arm neutral |
+| Aug 31 | **ritesh + gate 0.5 + wide radii 12/15** | **0.941** | **rank 32; gate precision unlocks wider candidate recall** |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
