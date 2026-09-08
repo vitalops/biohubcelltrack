@@ -41,6 +41,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- **Frozen-detector finetune (next training design):** freeze `unet`+`detect_head`, train only `transformer` (580k) → detection identical to 0.941 baseline by construction; precompute per-node UNet features once → transformer epochs take seconds (fits Kaggle quota). Motivation: H100 finetune drifted the UNet (detection −4–40% nodes) and the hybrid transplant (primary unet+det + ft transformer) validated WORSE (adj 0.9158 vs 0.9202) — the ft transformer only works on its own UNet features.
 - Wide-radii + gate submission (code verified; awaiting a correctly-configured T4 save — NOTE: every API push resets the kernel accelerator, re-select T4 x2 on every save)
 - Three-seed blend: third seed trained (warm-start seed 424242, 4 epochs, val acc*recall 0.9797) → dataset `abhijithneilabraham/biohub-edge-thirdseed-424242-v1` (weights.tar); integration = extend the dual-seed logit blend in the inference cell
 - Gate v2: richer features (DeepCenter scores, edge probs), threshold sweep
