@@ -13,7 +13,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Aug 30 | ritesh + gate + prune 0.15 | 0.935 | prune arm neutral |
 | Aug 31 | **ritesh + gate 0.5 + wide radii 12/15** | **0.941** | **rank 32; gate precision unlocks wider candidate recall** |
 | Sep 8 | 0.941 recipe + H100 soupft epoch-0 weights (warm-start from 3-way soup, lr 3e-5, batch 32, TF32) | **0.932** | ref 56092611; REGRESSION: finetuned detector is more conservative → at DET 0.96875 it finds 4–40% fewer cells on public test (44b6_0b24845f: 11.9k vs 19k nodes) → edge FNs. Validator (+0.015) was fooled: its adjusted-jaccard factor >1 when T_pred<T_true rewards under-detection |
-| Sep 8 | 0.941 recipe + H100 soupft **epoch-5** best (proxy 0.9803) | pending | ref 56095685 (submit-full v23); training stopped at 7 epochs per user; box wiped |
+| Sep 8 | 0.941 recipe + H100 soupft **epoch-5** as primary | **0.930** | ref 56095685; confirms detection-head degradation (ep0 0.932). Next: H100 weights as SECONDARY seed (S) and HYBRID (primary unet+detect_head + ft transformer, sha a04d9a8f) |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
