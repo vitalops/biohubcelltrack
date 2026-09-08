@@ -1,0 +1,18 @@
+{
+  "id": "abhijithneilabraham/biohub-hybrid",
+  "title": "biohub-hybrid",
+  "code_file": "biohub-hybrid.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "abhijithneilabraham/biohub-h100-soupft-v1"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
