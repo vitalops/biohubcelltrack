@@ -6,9 +6,10 @@ TAG=$1; WHICH=${2:-best}
 W=/home/abhijith/.local/share/.ctw; BOX=abhijith@89.169.102.55
 REPO=$(git rev-parse --show-toplevel); cd "$REPO"
 mkdir -p weights/$TAG
-scp -q $BOX:$W/wts/$TAG/edge_predictor_${WHICH}.pth weights/$TAG/edge_predictor_best.pth
-scp -q $BOX:$W/wts/$TAG/config.json weights/$TAG/config.json
-scp -q $BOX:$W/wts/$TAG/epochs_done.txt weights/$TAG/epochs_done.txt 2>/dev/null || true
+SRC=${SRC:-$W/wts/$TAG}
+scp -q $BOX:$SRC/edge_predictor_${WHICH}.pth weights/$TAG/edge_predictor_best.pth
+scp -q $BOX:$SRC/config.json weights/$TAG/config.json
+scp -q $BOX:$SRC/epochs_done.txt weights/$TAG/epochs_done.txt 2>/dev/null || true
 SHA=$(shasum -a 256 weights/$TAG/edge_predictor_best.pth | cut -d' ' -f1)
 echo "sha256: $SHA"
 # Kaggle dataset (flat layout: files at root so the swap cell's recursive glob finds them)
