@@ -20,7 +20,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - **P100 is banned** for submissions; API pushes always get P100. Only web-editor "Save & Run All" runs on the UI-selected T4 x2. Flow: API-push config → one UI save → auto-verify GPU from log → submit via API.
 - P100 training quirks: SDPA mem-efficient kernel grid.z cap → force math SDPA + chunk per-voxel attention (8192) below sm_75.
 - 4-video local validator: useful for big deltas only; it inverted 0.924 vs 0.926, under-called the gate (+0.001 → +0.009 LB) and over-called the H100 finetune (+0.015 → −0.009 LB). Its adjusted-jaccard REWARDS under-detection (T_pred < T_true ⇒ factor > 1) — always compare T_pred/node counts against the baseline, never trust the proxy alone for model swaps.
-- Any new detector must be re-calibrated to the pipeline (DET_THRESHOLD, retention guard) so node counts match the tuned baseline; one LB-tested delta at a time.
+- DET_THRESHOLD does NOT recover a degraded detector (ep5 @0.94 → fewer nodes than @0.96875): the finetune softened detection heatmaps (merged peaks in dense regions) while improving association. Use finetuned weights as SECONDARY seed or as a HYBRID (primary UNet/detection + finetuned association head); never as primary. One LB-tested delta at a time.
 - Max 2 concurrent GPU sessions; a third UI save cancels running ones.
 
 ## Our contributions (beyond public notebooks)
