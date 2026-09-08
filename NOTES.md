@@ -12,14 +12,15 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Aug 28 | ritesh + mitosis gate (prob ≥ 0.5) | 0.935 | top-50; +0.009 from our learned division gate |
 | Aug 30 | ritesh + gate + prune 0.15 | 0.935 | prune arm neutral |
 | Aug 31 | **ritesh + gate 0.5 + wide radii 12/15** | **0.941** | **rank 32; gate precision unlocks wider candidate recall** |
-| Sep 8 | **0.941 recipe + H100 soupft epoch-0 weights (warm-start from 3-way soup, lr 3e-5, batch 32, TF32)** | pending | ref 56092611; first H100-trained submission |
+| Sep 8 | 0.941 recipe + H100 soupft epoch-0 weights (warm-start from 3-way soup, lr 3e-5, batch 32, TF32) | **0.932** | ref 56092611; REGRESSION: finetuned detector is more conservative → at DET 0.96875 it finds 4–40% fewer cells on public test (44b6_0b24845f: 11.9k vs 19k nodes) → edge FNs. Validator (+0.015) was fooled: its adjusted-jaccard factor >1 when T_pred<T_true rewards under-detection |
 | Sep 8 | 0.941 recipe + H100 soupft **epoch-5** best (proxy 0.9803) | pending | ref 56095685 (submit-full v23); training stopped at 7 epochs per user; box wiped |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
 - **P100 is banned** for submissions; API pushes always get P100. Only web-editor "Save & Run All" runs on the UI-selected T4 x2. Flow: API-push config → one UI save → auto-verify GPU from log → submit via API.
 - P100 training quirks: SDPA mem-efficient kernel grid.z cap → force math SDPA + chunk per-voxel attention (8192) below sm_75.
-- 4-video local validator: useful for big deltas only; it inverted 0.924 vs 0.926 and under-called the gate (+0.001 proxy → +0.009 LB).
+- 4-video local validator: useful for big deltas only; it inverted 0.924 vs 0.926, under-called the gate (+0.001 → +0.009 LB) and over-called the H100 finetune (+0.015 → −0.009 LB). Its adjusted-jaccard REWARDS under-detection (T_pred < T_true ⇒ factor > 1) — always compare T_pred/node counts against the baseline, never trust the proxy alone for model swaps.
+- Any new detector must be re-calibrated to the pipeline (DET_THRESHOLD, retention guard) so node counts match the tuned baseline; one LB-tested delta at a time.
 - Max 2 concurrent GPU sessions; a third UI save cancels running ones.
 
 ## Our contributions (beyond public notebooks)
