@@ -12,6 +12,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Aug 28 | ritesh + mitosis gate (prob ≥ 0.5) | 0.935 | top-50; +0.009 from our learned division gate |
 | Aug 30 | ritesh + gate + prune 0.15 | 0.935 | prune arm neutral |
 | Aug 31 | **ritesh + gate 0.5 + wide radii 12/15** | **0.941** | **rank 32; gate precision unlocks wider candidate recall** |
+| Sep 8 | **0.941 recipe + H100 soupft epoch-0 weights (warm-start from 3-way soup, lr 3e-5, batch 32, TF32)** | pending | ref 56092611; first H100-trained submission |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
