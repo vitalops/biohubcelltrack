@@ -14,7 +14,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Aug 31 | **ritesh + gate 0.5 + wide radii 12/15** | **0.941** | **rank 32; gate precision unlocks wider candidate recall** |
 | Sep 8 | 0.941 recipe + H100 soupft epoch-0 weights (warm-start from 3-way soup, lr 3e-5, batch 32, TF32) | **0.932** | ref 56092611; REGRESSION: finetuned detector is more conservative → at DET 0.96875 it finds 4–40% fewer cells on public test (44b6_0b24845f: 11.9k vs 19k nodes) → edge FNs. Validator (+0.015) was fooled: its adjusted-jaccard factor >1 when T_pred<T_true rewards under-detection |
 | Sep 8 | 0.941 recipe + H100 soupft **epoch-5** as primary | **0.930** | ref 56095685; confirms detection-head degradation (ep0 0.932). Next: H100 weights as SECONDARY seed (S) and HYBRID (primary unet+detect_head + ft transformer, sha a04d9a8f) |
-| Sep 9 | 0.941 recipe, original primary + **H100 ep5 as SECONDARY seed** | pending | ref 56105539 (v91-merge v7); detection preserved (25.1k/20.2k/5.9k/69.0k nodes); hybrid transplant cancelled (validated 0.9158 < 0.9202) |
+| Sep 9 | 0.941 recipe, original primary + H100 ep5 as SECONDARY seed | **0.939** | ref 56105539 (v91-merge v7); detection preserved (25.1k/20.2k/5.9k/69.0k nodes); hybrid transplant cancelled (validated 0.9158 < 0.9202) |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
@@ -42,6 +42,8 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- **H100 finetune verdict: no lever** (primary 0.930–0.932, hybrid −0.004 val, secondary 0.939). Warm-started finetunes are too correlated with the primary to ensemble and drifted the detector. Real model gains need an INDEPENDENT from-scratch seed (~400 epochs ≈ 4–5 H100-days) or the frozen-detector transformer-only route (safe, modest upside).
+- **Highest cost/benefit now: gate v2** (division axis gave +0.009, +0.006): richer features (DeepCenter scores at parent/children, edge probabilities, t−1/t+2 context), more positives via augmentation; CPU-only. Plus cheap LB configs on the 0.941 recipe (gate 0.4 built as submit-full v24-style).
 - **Frozen-detector finetune (next training design):** freeze `unet`+`detect_head`, train only `transformer` (580k) → detection identical to 0.941 baseline by construction; precompute per-node UNet features once → transformer epochs take seconds (fits Kaggle quota). Motivation: H100 finetune drifted the UNet (detection −4–40% nodes) and the hybrid transplant (primary unet+det + ft transformer) validated WORSE (adj 0.9158 vs 0.9202) — the ft transformer only works on its own UNet features.
 - Wide-radii + gate submission (code verified; awaiting a correctly-configured T4 save — NOTE: every API push resets the kernel accelerator, re-select T4 x2 on every save)
 - Three-seed blend: third seed trained (warm-start seed 424242, 4 epochs, val acc*recall 0.9797) → dataset `abhijithneilabraham/biohub-edge-thirdseed-424242-v1` (weights.tar); integration = extend the dual-seed logit blend in the inference cell
