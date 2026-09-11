@@ -16,6 +16,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Sep 8 | 0.941 recipe + H100 soupft **epoch-5** as primary | **0.930** | ref 56095685; confirms detection-head degradation (ep0 0.932). Next: H100 weights as SECONDARY seed (S) and HYBRID (primary unet+detect_head + ft transformer, sha a04d9a8f) |
 | Sep 9 | 0.941 recipe, original primary + H100 ep5 as SECONDARY seed | **0.939** | ref 56105539 (v91-merge v7); detection preserved (25.1k/20.2k/5.9k/69.0k nodes); hybrid transplant cancelled (validated 0.9158 < 0.9202) |
 | Sep 11 | **Zharov lineage-forge (public 0.947) core + our mitosis gate 0.5** | **0.947** | submit-full v27, submitted 12:12 UTC; T4 x2 verified, gate loaded |
+| Sep 11 | lineage-forge core + gate 0.5 + **radii 12/15 + DC safe-div veto off** | pending | ref 56172810 (v30); transplanting the combo where our gate earned +0.006 |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
