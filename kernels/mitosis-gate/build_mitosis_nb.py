@@ -151,7 +151,27 @@ def extract_video(stem, max_events=4000):
         local_density = 0
         if tr1 is not None:
             local_density = len(tr1.query_ball_point(np.array([pz,py,px]) * VOX, 12.0))
-        return [pd1, pd2, sd, abs(pd1 - pd2), div, local_density] + s_par + s_c1 + s_c2 + [label]
+        # --- v2 extra features (cheap geometry/intensity/context) ---
+        pv = np.array([pz,py,px]); av = np.array([az,ay,ax]); bv = np.array([bz,by_,bx])
+        mid = (av + bv) / 2.0
+        mid_dist = dist_um(pv, mid)                      # parent -> sisters' midpoint
+        sis_vec = (bv - av) * VOX; par_vec = None
+        # parent's own predecessor (t-1) for motion context
+        preds = [q for q, cs_ in children.items() if p in cs_]
+        if preds:
+            _, qz, qy, qx = nodes[preds[0]]
+            par_vec = (pv - np.array([qz,qy,qx])) * VOX
+            par_speed = float(np.linalg.norm(par_vec))
+            cosang = float(np.dot(sis_vec, par_vec) / (np.linalg.norm(sis_vec) * np.linalg.norm(par_vec) + 1e-6))
+        else:
+            par_speed = -1.0; cosang = 0.0
+        ids_t0, tr0 = tree(tp)
+        dens_t0 = len(tr0.query_ball_point(pv * VOX, 12.0)) if tr0 is not None else 0
+        int_ratio = (s_c1[0] + s_c2[0]) / (2.0 * s_par[0] + 1e-3)
+        int_sym = abs(s_c1[0] - s_c2[0]) / (s_c1[0] + s_c2[0] + 1e-3)
+        zdiff = abs(az - bz) * VOX[0]
+        return [pd1, pd2, sd, abs(pd1 - pd2), div, local_density] + s_par + s_c1 + s_c2 \
+               + [mid_dist, par_speed, cosang, dens_t0, int_ratio, int_sym, zdiff, label]
 
     events = [(p, cs, 1) for p, cs in pos] + [(p, cs, 0) for p, cs in neg]
     events.sort(key=lambda e: nodes[e[0]][0])  # frame order => cache-friendly
@@ -185,17 +205,18 @@ import joblib, numpy as np
 
 d = np.load("/kaggle/working/mitosis_features.npz")
 X, y = d["X"], d["y"]
-clf = HistGradientBoostingClassifier(max_iter=300, learning_rate=0.08, max_depth=6,
-                                     l2_regularization=1.0, random_state=0)
+clf = HistGradientBoostingClassifier(max_iter=400, learning_rate=0.06, max_depth=5,
+                                     l2_regularization=1.0, class_weight="balanced", random_state=0)
 cv = StratifiedKFold(5, shuffle=True, random_state=0)
 aucs = cross_val_score(clf, X, y, cv=cv, scoring="roc_auc", n_jobs=2)
 print("CV AUC:", aucs, "mean:", aucs.mean())
 clf.fit(X, y)
-joblib.dump(clf, "/kaggle/working/mitosis_gate.joblib")
+joblib.dump(clf, "/kaggle/working/mitosis_gate_v2.joblib")
 FEATURES = ["pd1","pd2","sister_dist","pd_asym","divergence","local_density",
-            "par_mean","par_max","par_std","c1_mean","c1_max","c1_std","c2_mean","c2_max","c2_std"]
+            "par_mean","par_max","par_std","c1_mean","c1_max","c1_std","c2_mean","c2_max","c2_std",
+            "mid_dist","par_speed","cosang","dens_t0","int_ratio","int_sym","zdiff"]
 import json
-json.dump({"features": FEATURES, "cv_auc": float(aucs.mean())}, open("/kaggle/working/mitosis_gate_meta.json","w"))
+json.dump({"features": FEATURES, "cv_auc": float(aucs.mean())}, open("/kaggle/working/mitosis_gate_v2_meta.json","w"))
 print("saved gate model")
 '''
 
