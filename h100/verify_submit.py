@@ -17,7 +17,7 @@ with api.build_kaggle_client() as kg:
     req = ApiListKernelSessionOutputRequest(); req.user_name = "abhijithneilabraham"; req.kernel_slug = slug
     resp = kg.kernels.kernels_api_client.list_kernel_session_output(req)
 text = "".join(e.get("data", "") for e in json.loads(resp.log) if isinstance(e, dict))
-gpu = [l for l in text.split("\n") if l.startswith("GPU:")][:1]
+gpu = [l for l in text.split("\n") if l.startswith("GPU:") or l.startswith("CUDA device:")][:1]
 swap = [l for l in text.split("\n") if "PRIMARY = SOUP" in l or "PRIMARY SWAPPED" in l][:1]
 print("GPU:", gpu, "| swap:", swap)
 if not any("T4" in g for g in gpu):
