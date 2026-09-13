@@ -143,6 +143,12 @@ def load_gt(stem):
             kids = [np.array(nodes[c][1:]) * VOX3 for c in cs if c in nodes]
             if len(kids) == 2: divs.append((tp, np.array([pz, py, px]) * VOX3, kids))
     return divs
+_seen = set(); _uniq = []
+for r in MINED:
+    k = (r["src"], r["dataset"], r["t"], tuple(round(v, 1) for v in r["p"]), tuple(round(v, 1) for v in r["c1"]), tuple(round(v, 1) for v in r["c2"]))
+    if k in _seen: continue
+    _seen.add(k); _uniq.append(r)
+print(f"mined raw {len(MINED)} -> unique {len(_uniq)}"); MINED = _uniq
 by_ds = {}
 for r in MINED: by_ds.setdefault(r["dataset"], []).append(r)
 X, y, meta = [], [], []
@@ -213,7 +219,9 @@ for i in code:
         assert a in s; s = s.replace(a, SAFEDIV_HOOK + a); n["hook"] += 1
         setsrc(i, s); n["helpers"] += 1
     if "pred_nodes_plain = nodes_by_id_to_plain(processed_nodes)" in s:
-        s = "MINING_ENABLED = True\n" + s.replace("        pred_nodes_plain = nodes_by_id_to_plain(processed_nodes)", FORK_HOOK + "        pred_nodes_plain = nodes_by_id_to_plain(processed_nodes)")
+        _hook = "\n".join(("    " + l if l.strip() else l) for l in FORK_HOOK.split("\n"))
+        assert "            pred_nodes_plain = nodes_by_id_to_plain(processed_nodes)" in s
+        s = "MINING_ENABLED = True\n" + s.replace("            pred_nodes_plain = nodes_by_id_to_plain(processed_nodes)", _hook + "            pred_nodes_plain = nodes_by_id_to_plain(processed_nodes)")
         assert "Per-sample validator rows written" in s
         s = s + LABEL_TRAIN; setsrc(i, s); n["fork"] += 1; n["train"] += 1
 assert all(v == 1 for v in n.values()), n
