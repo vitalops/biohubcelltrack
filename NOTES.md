@@ -17,7 +17,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Sep 9 | 0.941 recipe, original primary + H100 ep5 as SECONDARY seed | **0.939** | ref 56105539 (v91-merge v7); detection preserved (25.1k/20.2k/5.9k/69.0k nodes); hybrid transplant cancelled (validated 0.9158 < 0.9202) |
 | Sep 11 | **Zharov lineage-forge (public 0.947) core + our mitosis gate 0.5** | **0.947** | submit-full v27, submitted 12:12 UTC; T4 x2 verified, gate loaded |
 | Sep 11 | lineage-forge core + gate 0.5 + radii 12/15 + DC safe-div veto off | **0.946** | ref 56172810 (v30); transplanting the combo where our gate earned +0.006 |
-| Sep 12 | lineage-forge config (radii 9/14, veto on) + **gate v2 (AUC 0.994)** | pending | ref 56191319 (v34) |
+| Sep 12 | lineage-forge config (radii 9/14, veto on) + gate v2 (AUC 0.994) | **0.932** | ref 56191319 (v34) |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
@@ -45,6 +45,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- **Gate v2 FAILED on LB (0.932, −0.015) despite CV AUC 0.994 → train/serve skew.** Miner computes density/predecessor features on SPARSE GT graphs (~800 annotated nodes/video); inference computes them on DENSE predicted graphs (~40k nodes) → distributions differ 50×; the balanced GBM leaned on those features. Gate v1 survived because it barely used density. FIX (if retried): build the training set from PREDICTED candidates (run pipeline on train videos, label safe-div candidates by GT match), or drop graph-dependent features. Reverted submit-lf to gate v1 (0.947).
 - **Gate v2 trained (Sep 12): 22 features (+midpoint dist, parent speed, sister/motion angle, t-density, intensity ratio/symmetry, z-gap), balanced GBM → CV AUC 0.994 (v1 0.977).** Integrated into submit-lf (v31): helper mirrors miner featurize; dataset `biohub-mitosis-gate-v2`. Next candidate = lineage-forge core + gate v2 (0.5) + radii 12/15 + veto off.
 - **LB shifted (Sep 11): 0.941 is now rank ~761; top-50 = 0.948.** Public notebooks reached 0.942–0.947 with NO new weights — same pilkwang models, newer support-pack core knobs (DeepCenter TTA, secondary edge-feature TTA, adaptive short-track rescue, sister-symmetry tau, gap2 recovery, PPSWEEP). Zharov (flexonafft) `biohub-lineage-forge-precision-tracking` = LB 0.947 (verified rank 116). New base = that notebook + OUR mitosis gate (absent in all public 0.94x configs) → `kernels/submit-lf` (submit-full v26).
 - **H100 finetune verdict: no lever** (primary 0.930–0.932, hybrid −0.004 val, secondary 0.939). Warm-started finetunes are too correlated with the primary to ensemble and drifted the detector. Real model gains need an INDEPENDENT from-scratch seed (~400 epochs ≈ 4–5 H100-days) or the frozen-detector transformer-only route (safe, modest upside).
