@@ -1,0 +1,19 @@
+{
+  "id": "abhijithneilabraham/biohub-gate3-merge",
+  "title": "biohub-gate3-merge",
+  "code_file": "biohub-gate3-merge.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [
+    "abhijithneilabraham/biohub-mine-gate3-small",
+    "abhijithneilabraham/biohub-mine-gate3-c2",
+    "abhijithneilabraham/biohub-mine-gate3-c3"
+  ],
+  "model_sources": []
+}
