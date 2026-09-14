@@ -45,6 +45,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- **Base-rate finding (Sep 14, merged chunks 1+2, 72 videos):** 430k skew-free candidates / 49 positives (0.011%); pipeline forks: 16,633 with 18 true (0.1%). GroupKFold AUC 0.94 but precision ≤0.19 at any useful recall → a broad-candidate admission gate is impossible at this base rate (≥1,700 FP per 18 TP). Division RECALL via candidate expansion is a dead end; the only division lever is PRECISION on the pipeline's own narrow pool. New lever: aggressive FORK PRUNING with gate v3m (99.9% of forks are false) — test on validator worker first.
 - Mining chunk 2 (offset 18): 236k candidates, 21 positives (34 GT divs), CV AUC 0.86. Cumulative 49 positives / 430k. Chunk 3 (offset 36) launched; then merge+retrain (CPU kernel with kernel_sources = 3 chunks).
 - **Gate-v3 mining chunk 1 done (36 videos):** 193,647 skew-free candidates but only **28 positives** (55 GT divisions present; safediv 18 + fork 10) → CV AUC 0.90 with huge fold variance — too thin to deploy. Mining chunk 2 (offset 18) launched; plan 3 chunks (~108 videos, ~85 positives) then merge + retrain. Run #1 (80 videos) was lost to the 12h limit — Kaggle discards outputs of killed sessions; no mid-run checkpointing for notebook outputs.
 - Gate-v3 mining run #1 (80 videos) hit the 12h session limit (~8 min/video on single P100 with Zharov core + TTA) → outputs lost. Relaunched as `biohub-mine-gate3-small` (36 videos, ~5h).
