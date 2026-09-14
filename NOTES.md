@@ -45,6 +45,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- Mining chunk 2 (offset 18): 236k candidates, 21 positives (34 GT divs), CV AUC 0.86. Cumulative 49 positives / 430k. Chunk 3 (offset 36) launched; then merge+retrain (CPU kernel with kernel_sources = 3 chunks).
 - **Gate-v3 mining chunk 1 done (36 videos):** 193,647 skew-free candidates but only **28 positives** (55 GT divisions present; safediv 18 + fork 10) → CV AUC 0.90 with huge fold variance — too thin to deploy. Mining chunk 2 (offset 18) launched; plan 3 chunks (~108 videos, ~85 positives) then merge + retrain. Run #1 (80 videos) was lost to the 12h limit — Kaggle discards outputs of killed sessions; no mid-run checkpointing for notebook outputs.
 - Gate-v3 mining run #1 (80 videos) hit the 12h session limit (~8 min/video on single P100 with Zharov core + TTA) → outputs lost. Relaunched as `biohub-mine-gate3-small` (36 videos, ~5h).
 - **Gate v2 FAILED on LB (0.932, −0.015) despite CV AUC 0.994 → train/serve skew.** Miner computes density/predecessor features on SPARSE GT graphs (~800 annotated nodes/video); inference computes them on DENSE predicted graphs (~40k nodes) → distributions differ 50×; the balanced GBM leaned on those features. Gate v1 survived because it barely used density. FIX (if retried): build the training set from PREDICTED candidates (run pipeline on train videos, label safe-div candidates by GT match), or drop graph-dependent features. Reverted submit-lf to gate v1 (0.947).
