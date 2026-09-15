@@ -19,6 +19,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Sep 11 | lineage-forge core + gate 0.5 + radii 12/15 + DC safe-div veto off | **0.946** | ref 56172810 (v30); transplanting the combo where our gate earned +0.006 |
 | Sep 12 | lineage-forge config (radii 9/14, veto on) + gate v2 (AUC 0.994) | **0.932** | ref 56191319 (v34) |
 | Sep 15 | 0.947 config + gate v1 + **gate v3m fork pruning (thr 0.5)** | **0.948** | ref 56243564 (v37); v3m = 73 pos/610k skew-free candidates, GroupKFold AUC 0.977 |
+| Sep 15 | 0.947 config + gate v1 + gate v3m fork pruning **thr 0.7** | pending | ref 56252310 (v39) |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
