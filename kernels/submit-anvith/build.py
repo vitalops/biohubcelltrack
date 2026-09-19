@@ -10,6 +10,51 @@ a = ws.index("# ---- gate-v3 mining: log"); b = ws.index("# ---- end fork prunin
 block = ws[a:b]
 assert "def mining_feats" in block and "def prune_forks_v3" in block
 # the block references read_test_frame/TEST_DIR/np/os; provide them
+DIV = r'''
+def add_divisions_v3(nodes_by_id, edges, dataset, thr, max_um=12.0, sister_max_um=15.0, frame_frac_cap=0.01):
+    """Orphan-based division admission: parent with exactly one child + unmatched node at t+1 -> gate v3m."""
+    if PRUNE3_MODEL is None or thr <= 0:
+        return edges, {"added": 0, "cands": 0}
+    from scipy.spatial import cKDTree
+    out = {}; inc = set()
+    for e in edges:
+        out.setdefault(int(e["source_id"]), []).append(e); inc.add(int(e["target_id"]))
+    by_t = {}
+    for nid, n in nodes_by_id.items():
+        by_t.setdefault(int(n["t"]), []).append(nid)
+    fc = {}; added = 0; cands = 0; new_edges = []
+    for t in sorted(by_t):
+        orphans = [nid for nid in by_t.get(t + 1, []) if nid not in inc]
+        if not orphans: continue
+        opts = np.array([_mit_node_um(nodes_by_id[o]) for o in orphans]); tree = cKDTree(opts)
+        proposals = []
+        for pid in by_t[t]:
+            outs = out.get(pid, [])
+            if len(outs) != 1: continue
+            p = nodes_by_id[pid]; c1 = nodes_by_id.get(int(outs[0]["target_id"]))
+            if c1 is None: continue
+            p_um = _mit_node_um(p); c1_um = _mit_node_um(c1)
+            for k in tree.query_ball_point(p_um, max_um):
+                oid = orphans[k]; o = nodes_by_id[oid]
+                if np.linalg.norm(_mit_node_um(o) - c1_um) > sister_max_um: continue
+                cands += 1
+                try:
+                    f = mining_feats(dataset, p, c1, o, nodes_by_id, out, fc)
+                    prob = float(PRUNE3_MODEL.predict_proba(np.array([f], dtype=np.float32))[0, 1])
+                except Exception:
+                    continue
+                if prob >= thr: proposals.append((prob, pid, oid))
+        proposals.sort(reverse=True)
+        cap = max(1, int(frame_frac_cap * len(by_t[t]))); used_p = set(); used_o = set()
+        for prob, pid, oid in proposals:
+            if len(used_p) >= cap: break
+            if pid in used_p or oid in used_o: continue
+            used_p.add(pid); used_o.add(oid)
+            new_edges.append({"source_id": pid, "target_id": oid, "edge_prob": prob}); added += 1
+    print(f"  [{dataset}] division admission v3: {added} added from {cands} orphan candidates (thr {thr})", flush=True)
+    return edges + new_edges, {"added": added, "cands": cands}
+DIV_MIN_PROB = float(os.environ.get("BIOHUB_DIV3_MIN_PROB", "0.5"))
+'''
 PRE = r'''
 # ---- fork-pruning support (our contribution) ----
 import os, json, numpy as np, zarr
@@ -28,6 +73,7 @@ def read_test_frame(dataset, t, frame_cache):
     frame_cache[t] = fr
     return fr
 os.environ["BIOHUB_PRUNE3_MIN_PROB"] = "0.5"
+os.environ["BIOHUB_DIV3_MIN_PROB"] = "0.5"
 '''
 EXPORT_HOOK = r'''
         # ---- our gate-v3m fork pruning (post-ILP, pre-export) ----
@@ -35,6 +81,7 @@ EXPORT_HOOK = r'''
         edges_l = [{"source_id": int(r["source_id"]), "target_id": int(r["target_id"]), "edge_prob": float(r.get("edge_prob", 0.0) or 0.0)} for r in edge_row]
         _stats = {}
         edges_l = prune_forks_v3(nodes_by_id, edges_l, _stats, dataset=dataset, frame_cache={})
+        edges_l, _dstats = add_divisions_v3(nodes_by_id, edges_l, dataset, DIV_MIN_PROB)
         edge_row = edges_l
 '''
 cells = nb["cells"]
@@ -47,7 +94,7 @@ for c in cells:
     if c["cell_type"] != "code": continue
     s = "".join(c["source"])
     if s.startswith("#submission"):
-        s = PRE + block + s
+        s = PRE + block + DIV + s
         anchor = '        node_id = {int(row["node_id"]) for row in node_row}'
         assert anchor in s
         s = s.replace(anchor, EXPORT_HOOK + anchor, 1); n["hook"] += 1
