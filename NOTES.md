@@ -47,6 +47,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- **Sep 19: adopted anvithpothula 0.950 base** (8-way TTA + ILP, no postproc; single model) + our v3m fork pruning → submit-full v40. Next overlays if it holds: Zharov-style safe-div admission w/ gate v1 (needs port), DET/pool sweeps, 2-seed logit blend with TTA.
 - **Gate v3m final (3 chunks, 108 videos): 610k candidates, 73 positives; GroupKFold-by-video AUC 0.977 (stable 0.96–0.99).** Admission still base-rate-limited (precision ≤0.24); used as FORK PRUNER (thr 0.5) on the 0.947 config → submit-lf v36 (kernel_sources biohub-gate3-merge latest).
 - **Base-rate finding (Sep 14, merged chunks 1+2, 72 videos):** 430k skew-free candidates / 49 positives (0.011%); pipeline forks: 16,633 with 18 true (0.1%). GroupKFold AUC 0.94 but precision ≤0.19 at any useful recall → a broad-candidate admission gate is impossible at this base rate (≥1,700 FP per 18 TP). Division RECALL via candidate expansion is a dead end; the only division lever is PRECISION on the pipeline's own narrow pool. New lever: aggressive FORK PRUNING with gate v3m (99.9% of forks are false) — test on validator worker first.
 - Mining chunk 2 (offset 18): 236k candidates, 21 positives (34 GT divs), CV AUC 0.86. Cumulative 49 positives / 430k. Chunk 3 (offset 36) launched; then merge+retrain (CPU kernel with kernel_sources = 3 chunks).
