@@ -23,6 +23,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Sep 19 | anvithpothula public "0.95" base (8-way TTA + ILP, no postproc) + prune (no-op: zero forks) | **0.877** | ref 56367625; public notebook does NOT reproduce his 0.950 — no postprocessing stack; ABANDON base |
 | Sep 20 | anvith base + orphan division admission (v3m ≥0.5, cap 1%/frame) | **0.888** | +0.011 over 0.877 — division mechanism works; porting to 0.948 config |
 | Sep 20 | 0.948 config + orphan division admission (v3m ≥0.5), before short-track filter | **0.927** | ref 56381144 (v45); 207 divisions added on public test |
+| Sep 20 | 0.948 config + division admission AFTER filters (v3m ≥0.6) | pending | ref 56399762 (v47); 78 divisions added on public test |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
