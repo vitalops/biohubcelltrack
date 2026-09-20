@@ -21,6 +21,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Sep 15 | 0.947 config + gate v1 + **gate v3m fork pruning (thr 0.5)** | **0.948** | ref 56243564 (v37); v3m = 73 pos/610k skew-free candidates, GroupKFold AUC 0.977 |
 | Sep 15 | 0.947 config + gate v1 + gate v3m fork pruning thr 0.7 | **0.946** | ref 56252310 (v39) |
 | Sep 19 | anvithpothula public "0.95" base (8-way TTA + ILP, no postproc) + prune (no-op: zero forks) | **0.877** | ref 56367625; public notebook does NOT reproduce his 0.950 — no postprocessing stack; ABANDON base |
+| Sep 20 | anvith base + orphan division admission (v3m ≥0.5, cap 1%/frame) | **0.888** | +0.011 over 0.877 — division mechanism works; porting to 0.948 config |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
