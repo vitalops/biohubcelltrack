@@ -22,7 +22,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | Sep 15 | 0.947 config + gate v1 + gate v3m fork pruning thr 0.7 | **0.946** | ref 56252310 (v39) |
 | Sep 19 | anvithpothula public "0.95" base (8-way TTA + ILP, no postproc) + prune (no-op: zero forks) | **0.877** | ref 56367625; public notebook does NOT reproduce his 0.950 — no postprocessing stack; ABANDON base |
 | Sep 20 | anvith base + orphan division admission (v3m ≥0.5, cap 1%/frame) | **0.888** | +0.011 over 0.877 — division mechanism works; porting to 0.948 config |
-| Sep 20 | **0.948 config + orphan division admission (v3m ≥0.5)** | pending | ref 56381144 (v45); 207 divisions added on public test |
+| Sep 20 | 0.948 config + orphan division admission (v3m ≥0.5), before short-track filter | **0.927** | ref 56381144 (v45); 207 divisions added on public test |
 
 ## Key mechanics (hard-won)
 - Submissions are **notebook-only** and **rerun on a hidden test set**; precomputed outputs die on rerun.
@@ -50,6 +50,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - `solution/`, `training/` — July-era artifacts
 
 ## Next
+- **0.927 regression diagnosis:** admission ran BEFORE `filter_short_track_components` with OUTPUT_KEEP_DIVISION_COMPONENTS=1 → every accepted fork exempted its (often junk) orphan track from removal → spurious nodes/edges kept. Fix (v46): run admission as the LAST step (after short-track filter + linefit), thr 0.6 — orphan pool = surviving track starts only.
 - **Sep 19: adopted anvithpothula 0.950 base** (8-way TTA + ILP, no postproc; single model) + our v3m fork pruning → submit-full v40. Next overlays if it holds: Zharov-style safe-div admission w/ gate v1 (needs port), DET/pool sweeps, 2-seed logit blend with TTA.
 - **Gate v3m final (3 chunks, 108 videos): 610k candidates, 73 positives; GroupKFold-by-video AUC 0.977 (stable 0.96–0.99).** Admission still base-rate-limited (precision ≤0.24); used as FORK PRUNER (thr 0.5) on the 0.947 config → submit-lf v36 (kernel_sources biohub-gate3-merge latest).
 - **Base-rate finding (Sep 14, merged chunks 1+2, 72 videos):** 430k skew-free candidates / 49 positives (0.011%); pipeline forks: 16,633 with 18 true (0.1%). GroupKFold AUC 0.94 but precision ≤0.19 at any useful recall → a broad-candidate admission gate is impossible at this base rate (≥1,700 FP per 18 TP). Division RECALL via candidate expansion is a dead end; the only division lever is PRECISION on the pipeline's own narrow pool. New lever: aggressive FORK PRUNING with gate v3m (99.9% of forks are false) — test on validator worker first.
