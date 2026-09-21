@@ -1,7 +1,7 @@
 """Build offline P100 validator workers that test Ben Pepper's public weights inside the 0.948 pipeline.
 Source: kernels/worker-prune3 (Zharov core + gate v1 + prune3 0.5 + 4-video validator).
 Variants:
-  d0   : Pepper SWA as SECONDARY, BIOHUB_SECONDARY_DETECTION_WEIGHT=0 (edge-only blend)
+  d0   : Pepper SWA as SECONDARY, BIOHUB_SECONDARY_DETECTION_WEIGHT=0.001 (edge-only blend; >0 keeps the retention-guard audit alive)
   fam  : Pepper SWA as PRIMARY + Pepper fold2 as SECONDARY (all-Pepper family, default blend weights)
 """
 import json, copy, sys, os
@@ -39,7 +39,7 @@ PRI_SWAP = lambda sha, fname, tag: (
     f'print("PRIMARY SWAPPED = {tag}:", _src, hashlib.sha256(open(_pdst,"rb").read()).hexdigest())\n')
 
 VARIANTS = {
-  'd0':  {'cells': [SEC_SWAP(SWA, 'synthetic_5fold_swa.pth', 'PEPPER SWA') + 'os.environ["BIOHUB_SECONDARY_DETECTION_WEIGHT"] = "0.0"\nprint("secondary detection weight ->", os.environ["BIOHUB_SECONDARY_DETECTION_WEIGHT"])\n']},
+  'd0':  {'cells': [SEC_SWAP(SWA, 'synthetic_5fold_swa.pth', 'PEPPER SWA') + 'os.environ["BIOHUB_SECONDARY_DETECTION_WEIGHT"] = "0.001"\nprint("secondary detection weight ->", os.environ["BIOHUB_SECONDARY_DETECTION_WEIGHT"])\n']},
   'fam': {'cells': [PRI_SWAP(SWA, 'synthetic_5fold_swa.pth', 'PEPPER SWA'), SEC_SWAP(FOLD2, 'synthetic_fold2_best.pth', 'PEPPER FOLD2')]},
 }
 
