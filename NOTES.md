@@ -69,3 +69,5 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - Three-seed blend: third seed trained (warm-start seed 424242, 4 epochs, val acc*recall 0.9797) → dataset `abhijithneilabraham/biohub-edge-thirdseed-424242-v1` (weights.tar); integration = extend the dual-seed logit blend in the inference cell
 - Gate v2: richer features (DeepCenter scores, edge probs), threshold sweep
 - Prune arm tested: neutral at 0.15 (LB 0.935 = unchanged); big-model scratch training abandoned (4.2h/epoch uneconomical)
+
+- **2026-09-21 v49→v50 (pending)**: 0.948 config + Ben Pepper public `synthetic_5fold_swa.pth` (sha 0eacacaf…, dataset `bhpepper/biohub-synthetic-5fold-ensemble-v1`, drop-in same 136-key arch, mean rel. drift 1.21 vs pilkwang primary) swapped in as SECONDARY seed (swap cell idx 4, glob `synthetic_5fold_swa.pth`). Primary stays pilkwang 400ep. Pepper's own kernel is private (LB 0.950). If ≥0.948: next test SWA as PRIMARY / fold2 as secondary.
