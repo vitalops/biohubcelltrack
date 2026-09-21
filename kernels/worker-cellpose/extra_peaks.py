@@ -84,6 +84,9 @@ def inject_extra_peaks(arr: np.ndarray, t: int, zarr_arr, downsample, voxel_size
     """arr: (N,4) int16 [t,z,y,x] UNet peaks in DOWNSAMPLED grid. Returns augmented array (same dtype/layout)."""
     if os.environ.get("BIOHUB_EXTRA_PEAKS", "1") != "1" or _CP_STATE["failed"]:
         return arr
+    if len(arr) < _env_f("BIOHUB_EXTRA_PEAKS_MIN_UNET", 0):  # density gate: only help frames the UNet under-detects
+        _CP_STATE["frames"] += 1; _CP_STATE["unet"] += len(arr)
+        return arr
     t0 = time.time()
     try:
         from scipy.spatial import cKDTree
