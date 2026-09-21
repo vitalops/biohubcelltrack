@@ -80,22 +80,37 @@ def cellpose_centroids(frame_full: np.ndarray):
     return _centroids(np.asarray(masks), int(_env_f("BIOHUB_CP_MIN_VOX", 40)))
 
 
-def inject_extra_peaks(arr: np.ndarray, t: int, zarr_arr, downsample, voxel_size_full, stem: str = "") -> np.ndarray:
+def inject_extra_peaks(arr: np.ndarray, t: int, zarr_arr, downsample, voxel_size_full, stem: str = "", sec_logits=None, pool_k=None, detect_fn=None) -> np.ndarray:
     """arr: (N,4) int16 [t,z,y,x] UNet peaks in DOWNSAMPLED grid. Returns augmented array (same dtype/layout)."""
     if os.environ.get("BIOHUB_EXTRA_PEAKS", "1") != "1" or _CP_STATE["failed"]:
         return arr
     t0 = time.time()
     try:
         from scipy.spatial import cKDTree
-        raw = np.asarray(zarr_arr[t]).astype(np.float32)  # (Z,Y,X) full res
-        cents, sizes = cellpose_centroids(raw)
+        ds = np.asarray(downsample, np.float32)  # e.g. (1,4,4)
+        vs = np.asarray(voxel_size_full, np.float32)  # e.g. (1.625,0.406,0.406)
+        source = os.environ.get("BIOHUB_EXTRA_PEAKS_SOURCE", "cellpose")
+        cents_list, sizes_list = [], []
+        if source in ("cellpose", "both"):
+            raw = np.asarray(zarr_arr[t]).astype(np.float32)  # (Z,Y,X) full res
+            c, sz = cellpose_centroids(raw)
+            cents_list.append(c); sizes_list.append(sz)
+        if source in ("secondary", "both"):
+            if sec_logits is None or detect_fn is None or pool_k is None:
+                raise RuntimeError("secondary peaks requested but no secondary logits/detect_fn/pool_k available")
+            thr = _env_f("BIOHUB_SEC_PEAKS_THR", 0.985)
+            sp = detect_fn(sec_logits[0], t, thr, pool_k)  # (N,4) downsampled grid
+            c = sp[:, 1:].astype(np.float32) * ds  # to full-res voxel coords
+            import torch as _torch
+            prob = _torch.sigmoid(sec_logits[0, 0][tuple(sp[:, 1:].astype(np.int64).T)]).float().cpu().numpy() if len(sp) else np.empty((0,), np.float32)
+            cents_list.append(c); sizes_list.append((prob * 1e6).astype(np.int64))  # rank by secondary confidence
+        cents = np.concatenate(cents_list, 0) if cents_list else np.empty((0, 3), np.float32)
+        sizes = np.concatenate(sizes_list, 0) if sizes_list else np.empty((0,), np.int64)
         _CP_STATE["frames"] += 1
         _CP_STATE["raw"] += len(cents)
         _CP_STATE["unet"] += len(arr)
         if len(cents) == 0:
             return arr
-        ds = np.asarray(downsample, np.float32)  # e.g. (1,4,4)
-        vs = np.asarray(voxel_size_full, np.float32)  # e.g. (1.625,0.406,0.406)
         cp_um = cents * vs
         radius = _env_f("BIOHUB_EXTRA_PEAKS_RADIUS_UM", 3.0)
         if len(arr):

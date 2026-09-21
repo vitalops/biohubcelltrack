@@ -61,4 +61,5 @@ def build(var):
     ins = [i for i, c in enumerate(chk['cells']) if 'PEPPER' in ''.join(c['source'])]
     print(var, '->', d, '| cells', len(chk['cells']), '| swap cells at', ins)
 
-for v in (sys.argv[1:] or VARIANTS): build(v)
+if __name__ == '__main__':
+    for v in (sys.argv[1:] or VARIANTS): build(v)

@@ -30,13 +30,17 @@ _det_old = "                arr = _detect_cells_pooled(\n                    det
 _det_new = _det_old + (
     "                if os.environ.get(\"BIOHUB_EXTRA_PEAKS\", \"1\") == \"1\":\n"
     "                    from biohub_tracking.extra_peaks import inject_extra_peaks as _inj_extra\n"
-    "                    arr = _inj_extra(arr, t, zarr_arr, downsample, tuple(ds.scale), str(ds_path))\n"
+    "                    arr = _inj_extra(arr, t, zarr_arr, downsample, tuple(ds.scale), str(ds_path), sec_logits=_SEC_STASH.pop(int(t), None), pool_k=pool_k, detect_fn=_detect_cells_pooled)\n"
 )
 assert _s.count(_det_old) == 1, f"extra-peaks anchor count {_s.count(_det_old)}"
 _s = _s.replace(_det_old, _det_new, 1)
 _fin_old = "    coords = np.concatenate(coord_lists) if coord_lists else np.empty((0, 4), dtype=np.int16)\n    # Scale spatial coords back to original resolution.\n"
 assert _s.count(_fin_old) == 1, f"extra-peaks report anchor count {_s.count(_fin_old)}"
 _s = _s.replace(_fin_old, _fin_old.replace("    # Scale spatial", "    if os.environ.get(\"BIOHUB_EXTRA_PEAKS\", \"1\") == \"1\":\n        from biohub_tracking.extra_peaks import report as _extra_report\n        _extra_report(str(ds_path))\n    # Scale spatial", 1), 1)
+_stash_old = "                    secondary_det_aligned = (\n                        (secondary_det - secondary_mean) * scale_ratio + primary_mean\n                    )\n"
+assert _s.count(_stash_old) == 1, f"stash anchor count {_s.count(_stash_old)}"
+_s = _s.replace(_stash_old, _stash_old + "                    _SEC_STASH[int(frame_indices[f])] = secondary_det.detach()\n", 1)
+_s = "_SEC_STASH = {}\n" + _s
 if "\nimport os\n" not in _s: _s = "import os\n" + _s
 compile(_s, str(_ps), "exec"); _ps.write_text(_s)
 assert "_inj_extra(" in _ps.read_text()
@@ -47,6 +51,7 @@ print("EXTRA_PEAKS patch installed:", {k: v for k, v in os.environ.items() if k.
 VARIANTS = {
   'a': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_STITCH': '0.3', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
   'b': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '1', 'BIOHUB_CP_ANISOTROPY': '4.0', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
+  'p': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
   'g': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_MODEL': '/kaggle/input/biohub-cellpose-stack-3-1-1-2/cellpose_models/nucleitorch_0', 'BIOHUB_CP_DIAMETER': '15', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
 }
 
@@ -57,6 +62,12 @@ def build(var):
     env = ''.join(f'os.environ["{k}"] = "{v}"\n' for k, v in VARIANTS[var].items())
     src = CELL.replace('__EXTRA_PEAKS_MODULE__', repr(MODULE)).replace('__ENV__', env)
     nb['cells'].insert(anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": src.splitlines(keepends=True)})
+    if var == 'p':  # secondary = Pepper SWA (candidate source only; det weight ~0)
+        import importlib.util as _ilu; _spec = _ilu.spec_from_file_location('pepper_build', 'kernels/worker-pepper/build.py'); pb = _ilu.module_from_spec(_spec); _spec.loader.exec_module(pb)
+        sec_anchor = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_WEIGHTS_ROOT = ' in ''.join(c['source'])]
+        assert len(sec_anchor) == 1, sec_anchor
+        nb['cells'].insert(sec_anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": pb.SEC_SWAP(pb.SWA, 'synthetic_5fold_swa.pth', 'PEPPER SWA').splitlines(keepends=True)})
+        if pb.PEP_DS not in meta['dataset_sources']: meta['dataset_sources'].append(pb.PEP_DS)
     slug = f'biohub-w-cellpose-{var}'
     meta['id'] = f'abhijithneilabraham/{slug}'; meta['title'] = slug; meta['code_file'] = f'{slug}.ipynb'; meta.pop('id_no', None)
     for d in DATASETS:
@@ -67,4 +78,5 @@ def build(var):
     compile(''.join(chk['cells'][anchor[0] + 1]['source']), 'cell', 'exec')
     print(var, '->', out, 'cells', len(chk['cells']), 'inserted at', anchor[0] + 1)
 
-for v in (sys.argv[1:] or ['a', 'b']): build(v)
+for v in (sys.argv[1:] or ['a', 'b']):
+    build(v)
