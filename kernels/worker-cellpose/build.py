@@ -1,0 +1,70 @@
+"""Build P100 validator workers: 0.948 pipeline + Cellpose extra-candidate injection.
+Variants: a = biohub_nuclei3d (public finetuned) 2D+stitch; b = same, true 3D (anisotropy 4);
+          g = generic nucleitorch_0 2D+stitch, diameter 15.
+"""
+import json, os, sys
+SRC_NB = 'kernels/worker-prune3/biohub-w-prune3.ipynb'
+SRC_META = 'kernels/worker-prune3/kernel-metadata.json'
+MODULE = open('kernels/worker-cellpose/extra_peaks.py').read()
+DATASETS = ['benjaminparrish/biohub-cellpose-stack-3-1-1-2', 'khanzkhan/biohub-cellpose-model', 'mkamijo/cellpose-offline-wheelhouse']
+
+CELL = r'''# === Cellpose extra-candidate injection (public finetuned nuclei model, no training) ===
+import subprocess, sys, glob, os, importlib
+_wheel_dirs = sorted({os.path.dirname(p) for p in glob.glob("/kaggle/input/**/*.whl", recursive=True)})
+_need = ["cellpose", "fastremap", "fill_voids", "roifile", "natsort"]
+_missing = [m for m in _need if importlib.util.find_spec(m) is None]
+if _missing:
+    _cmd = [sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "-q"]
+    for d in _wheel_dirs: _cmd += ["--find-links", d]
+    _r = subprocess.run(_cmd + _missing, capture_output=True, text=True)
+    print("cellpose deps install rc", _r.returncode, (_r.stderr or "")[-600:])
+import cellpose; print("cellpose", cellpose.version if hasattr(cellpose, "version") else "?")
+from cellpose import models as _cpm  # import check
+
+_mod = REPO_DIR / "src" / "biohub_tracking" / "extra_peaks.py"
+_mod.write_text(__EXTRA_PEAKS_MODULE__)
+
+_ps = REPO_DIR / "scripts" / "predict_unet_transformer.py"
+_s = _ps.read_text()
+_det_old = "                arr = _detect_cells_pooled(\n                    det_logits[f_idx][0], t, cfg.det_threshold, pool_k,\n                )\n"
+_det_new = _det_old + (
+    "                if os.environ.get(\"BIOHUB_EXTRA_PEAKS\", \"1\") == \"1\":\n"
+    "                    from biohub_tracking.extra_peaks import inject_extra_peaks as _inj_extra\n"
+    "                    arr = _inj_extra(arr, t, zarr_arr, downsample, tuple(ds.scale), str(ds_path))\n"
+)
+assert _s.count(_det_old) == 1, f"extra-peaks anchor count {_s.count(_det_old)}"
+_s = _s.replace(_det_old, _det_new, 1)
+_fin_old = "    coords = np.concatenate(coord_lists) if coord_lists else np.empty((0, 4), dtype=np.int16)\n    # Scale spatial coords back to original resolution.\n"
+assert _s.count(_fin_old) == 1, f"extra-peaks report anchor count {_s.count(_fin_old)}"
+_s = _s.replace(_fin_old, _fin_old.replace("    # Scale spatial", "    if os.environ.get(\"BIOHUB_EXTRA_PEAKS\", \"1\") == \"1\":\n        from biohub_tracking.extra_peaks import report as _extra_report\n        _extra_report(str(ds_path))\n    # Scale spatial", 1), 1)
+if "\nimport os\n" not in _s: _s = "import os\n" + _s
+compile(_s, str(_ps), "exec"); _ps.write_text(_s)
+assert "_inj_extra(" in _ps.read_text()
+__ENV__
+print("EXTRA_PEAKS patch installed:", {k: v for k, v in os.environ.items() if k.startswith("BIOHUB_EXTRA_PEAKS") or k.startswith("BIOHUB_CP_")})
+'''
+
+VARIANTS = {
+  'a': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_STITCH': '0.3', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
+  'b': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '1', 'BIOHUB_CP_ANISOTROPY': '4.0', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
+  'g': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_MODEL': '/kaggle/input/biohub-cellpose-stack-3-1-1-2/cellpose_models/nucleitorch_0', 'BIOHUB_CP_DIAMETER': '15', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
+}
+
+def build(var):
+    nb = json.load(open(SRC_NB)); meta = json.load(open(SRC_META))
+    anchor = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_EDGE_TTA_ACTIVE' in ''.join(c['source']) and 'write_text' in ''.join(c['source'])]
+    assert len(anchor) == 1, anchor
+    env = ''.join(f'os.environ["{k}"] = "{v}"\n' for k, v in VARIANTS[var].items())
+    src = CELL.replace('__EXTRA_PEAKS_MODULE__', repr(MODULE)).replace('__ENV__', env)
+    nb['cells'].insert(anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": src.splitlines(keepends=True)})
+    slug = f'biohub-w-cellpose-{var}'
+    meta['id'] = f'abhijithneilabraham/{slug}'; meta['title'] = slug; meta['code_file'] = f'{slug}.ipynb'; meta.pop('id_no', None)
+    for d in DATASETS:
+        if d not in meta['dataset_sources']: meta['dataset_sources'].append(d)
+    out = f'kernels/worker-cellpose/{var}'; os.makedirs(out, exist_ok=True)
+    json.dump(nb, open(f'{out}/{slug}.ipynb', 'w'), indent=1); json.dump(meta, open(f'{out}/kernel-metadata.json', 'w'), indent=2)
+    chk = json.load(open(f'{out}/{slug}.ipynb'))
+    compile(''.join(chk['cells'][anchor[0] + 1]['source']), 'cell', 'exec')
+    print(var, '->', out, 'cells', len(chk['cells']), 'inserted at', anchor[0] + 1)
+
+for v in (sys.argv[1:] or ['a', 'b']): build(v)
