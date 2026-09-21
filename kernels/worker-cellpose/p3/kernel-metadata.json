@@ -1,0 +1,29 @@
+{
+  "id": "abhijithneilabraham/biohub-w-cellpose-p3",
+  "title": "biohub-w-cellpose-p3",
+  "code_file": "biohub-w-cellpose-p3.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "pilkwang/biohub-deepcenter-unet3d-center-prior-v1",
+    "pilkwang/biohub-temporal-unet3d-seed314159-v1",
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "subinium/pytorch251-cu118-p100-wheelhouse-public",
+    "abhijithneilabraham/biohub-mitosis-gate-v1",
+    "bhpepper/biohub-synthetic-5fold-ensemble-v1",
+    "benjaminparrish/biohub-cellpose-stack-3-1-1-2",
+    "khanzkhan/biohub-cellpose-model",
+    "mkamijo/cellpose-offline-wheelhouse"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [
+    "abhijithneilabraham/biohub-gate3-merge"
+  ],
+  "model_sources": []
+}

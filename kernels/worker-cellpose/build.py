@@ -67,6 +67,8 @@ VARIANTS = {
   'a': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_STITCH': '0.3', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
   'b': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '1', 'BIOHUB_CP_ANISOTROPY': '4.0', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
   'p': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
+  'p2': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_EXTRA_PEAKS_MIN_UNET': '400', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
+  'p3': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.995', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.5', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
   'q': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
   'q2': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
   'q3': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_EXTRA_PEAKS_MIN_UNET': '400', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
@@ -90,7 +92,7 @@ def build(var):
         assert len(sec_anchor) == 1, sec_anchor
         nb['cells'].insert(sec_anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": cand_src.splitlines(keepends=True)})
         if pb.PEP_DS not in meta['dataset_sources']: meta['dataset_sources'].append(pb.PEP_DS)
-    if var == 'p':  # secondary = Pepper SWA (candidate source only; det weight ~0)
+    if var.startswith('p'):  # secondary = Pepper SWA (candidate source only; det weight ~0)
         import importlib.util as _ilu; _spec = _ilu.spec_from_file_location('pepper_build', 'kernels/worker-pepper/build.py'); pb = _ilu.module_from_spec(_spec); _spec.loader.exec_module(pb)
         sec_anchor = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_WEIGHTS_ROOT = ' in ''.join(c['source'])]
         assert len(sec_anchor) == 1, sec_anchor
