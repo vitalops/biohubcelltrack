@@ -11,14 +11,15 @@ DATASETS = ['benjaminparrish/biohub-cellpose-stack-3-1-1-2', 'khanzkhan/biohub-c
 CELL = r'''# === Cellpose extra-candidate injection (public finetuned nuclei model, no training) ===
 import subprocess, sys, glob, os, importlib
 _wheel_dirs = sorted({os.path.dirname(p) for p in glob.glob("/kaggle/input/**/*.whl", recursive=True)})
-_need = ["cellpose", "fastremap", "fill_voids", "roifile", "natsort"]
+_need = ["fastremap", "fill_voids", "roifile", "natsort"]
 _missing = [m for m in _need if importlib.util.find_spec(m) is None]
-if _missing:
-    _cmd = [sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "-q"]
-    for d in _wheel_dirs: _cmd += ["--find-links", d]
-    _r = subprocess.run(_cmd + _missing, capture_output=True, text=True)
-    print("cellpose deps install rc", _r.returncode, (_r.stderr or "")[-600:])
+_cmd = [sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "-q", "--force-reinstall"]
+for d in _wheel_dirs: _cmd += ["--find-links", d]
+# Kaggle ships cellpose 4.x, which refuses CP3 checkpoints -> pin the 3.1.1.2 wheel from the attached stack.
+_r = subprocess.run(_cmd + ["cellpose==3.1.1.2"] + _missing, capture_output=True, text=True)
+print("cellpose deps install rc", _r.returncode, (_r.stderr or "")[-600:])
 import cellpose; print("cellpose", cellpose.version if hasattr(cellpose, "version") else "?")
+assert str(getattr(cellpose, "version", "")).startswith("3."), "cellpose 3.x required for CP3 checkpoints"
 from cellpose import models as _cpm  # import check
 
 _mod = REPO_DIR / "src" / "biohub_tracking" / "extra_peaks.py"
