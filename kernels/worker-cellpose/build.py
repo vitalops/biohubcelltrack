@@ -41,7 +41,21 @@ _s = _s.replace(_fin_old, _fin_old.replace("    # Scale spatial", "    if os.env
 _stash_old = "                    secondary_det_aligned = (\n                        (secondary_det - secondary_mean) * scale_ratio + primary_mean\n                    )\n"
 assert _s.count(_stash_old) == 1, f"stash anchor count {_s.count(_stash_old)}"
 _s = _s.replace(_stash_old, _stash_old + "                    _SEC_STASH[int(frame_indices[f])] = secondary_det.detach()\n", 1)
-_s = "_SEC_STASH = {}\n" + _s
+_cand_old = "        del imgs\n"
+assert _s.count(_cand_old) == 1, f"cand-model anchor count {_s.count(_cand_old)}"
+_cand_new = (
+    "        if os.environ.get(\"BIOHUB_CAND_MODEL_WEIGHTS\"):\n"
+    "            global _CAND_MODEL\n"
+    "            if _CAND_MODEL is None:\n"
+    "                _CAND_MODEL, _, _ = load_model(Path(os.environ[\"BIOHUB_CAND_MODEL_WEIGHTS\"]), device)\n"
+    "                print(\"CAND_MODEL loaded:\", os.environ[\"BIOHUB_CAND_MODEL_WEIGHTS\"], flush=True)\n"
+    "            _, _cand_det = _CAND_MODEL.encode(imgs)\n"
+    "            for f in range(W):\n"
+    "                _SEC_STASH[int(frame_indices[f])] = _cand_det[f].detach()\n"
+    "            del _cand_det\n"
+) + _cand_old
+_s = _s.replace(_cand_old, _cand_new, 1)
+_s = "_SEC_STASH = {}\n_CAND_MODEL = None\n" + _s
 if "\nimport os\n" not in _s: _s = "import os\n" + _s
 compile(_s, str(_ps), "exec"); _ps.write_text(_s)
 assert "_inj_extra(" in _ps.read_text()
@@ -53,6 +67,8 @@ VARIANTS = {
   'a': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_STITCH': '0.3', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
   'b': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '1', 'BIOHUB_CP_ANISOTROPY': '4.0', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
   'p': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
+  'q': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
+  'q2': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
   'g': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_CP_DO3D': '0', 'BIOHUB_CP_MODEL': '/kaggle/input/biohub-cellpose-stack-3-1-1-2/cellpose_models/nucleitorch_0', 'BIOHUB_CP_DIAMETER': '15', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5'},
 }
 
@@ -63,6 +79,16 @@ def build(var):
     env = ''.join(f'os.environ["{k}"] = "{v}"\n' for k, v in VARIANTS[var].items())
     src = CELL.replace('__EXTRA_PEAKS_MODULE__', repr(MODULE)).replace('__ENV__', env)
     nb['cells'].insert(anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": src.splitlines(keepends=True)})
+    if var.startswith('q'):  # third model: Pepper SWA used only as a candidate source (secondary blend untouched)
+        import importlib.util as _ilu; _spec = _ilu.spec_from_file_location('pepper_build', 'kernels/worker-pepper/build.py'); pb = _ilu.module_from_spec(_spec); _spec.loader.exec_module(pb)
+        cand_src = ('# Materialize Pepper SWA as a standalone candidate model (pilkwang config.json)\nimport glob, hashlib, shutil, os\n' + pb.find(pb.SWA, 'synthetic_5fold_swa.pth') +
+                    '_cd = Path("/kaggle/working/cand_model"); _cd.mkdir(parents=True, exist_ok=True)\n'
+                    'shutil.copy(_src, _cd / "edge_predictor_best.pth"); shutil.copy(SECONDARY_WEIGHTS_PATH.parent / "config.json", _cd / "config.json")\n'
+                    'print("CAND MODEL = PEPPER SWA:", _src, hashlib.sha256(open(_cd / "edge_predictor_best.pth","rb").read()).hexdigest())\n')
+        sec_anchor = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_WEIGHTS_ROOT = ' in ''.join(c['source'])]
+        assert len(sec_anchor) == 1, sec_anchor
+        nb['cells'].insert(sec_anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": cand_src.splitlines(keepends=True)})
+        if pb.PEP_DS not in meta['dataset_sources']: meta['dataset_sources'].append(pb.PEP_DS)
     if var == 'p':  # secondary = Pepper SWA (candidate source only; det weight ~0)
         import importlib.util as _ilu; _spec = _ilu.spec_from_file_location('pepper_build', 'kernels/worker-pepper/build.py'); pb = _ilu.module_from_spec(_spec); _spec.loader.exec_module(pb)
         sec_anchor = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_WEIGHTS_ROOT = ' in ''.join(c['source'])]
