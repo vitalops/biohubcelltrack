@@ -71,3 +71,4 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - Prune arm tested: neutral at 0.15 (LB 0.935 = unchanged); big-model scratch training abandoned (4.2h/epoch uneconomical)
 
 - **2026-09-21 v50 submitted ref 56420323 (T4, score pending)**: 0.948 config + Ben Pepper public `synthetic_5fold_swa.pth` (sha 0eacacaf…, dataset `bhpepper/biohub-synthetic-5fold-ensemble-v1`, drop-in same 136-key arch, mean rel. drift 1.21 vs pilkwang primary) swapped in as SECONDARY seed (swap cell idx 4, glob `synthetic_5fold_swa.pth`). Primary stays pilkwang 400ep. Pepper's own kernel is private (LB 0.950). If ≥0.948: next test SWA as PRIMARY / fold2 as secondary.
+- **2026-09-21 v51→v52 (pending click)**: single-delta from 0.948: Pepper SWA as PRIMARY (weights tree rebuilt real, `WEIGHTS_RELATIVE` overwritten), secondary back to pilkwang seed314159. Tests whether a synthetic-finetuned primary survives our DET/DC calibration (H100 soupft primary did not).
