@@ -22,7 +22,6 @@ if os.environ.get("BIOHUB_EXTRA_PEAKS_SOURCE", "cellpose") in ("cellpose", "both
     print("cellpose deps install rc", _r.returncode, (_r.stderr or "")[-600:])
     import cellpose; print("cellpose", cellpose.version if hasattr(cellpose, "version") else "?")
     assert str(getattr(cellpose, "version", "")).startswith("3."), "cellpose 3.x required for CP3 checkpoints"
-from cellpose import models as _cpm  # import check
 
 _mod = REPO_DIR / "src" / "biohub_tracking" / "extra_peaks.py"
 _mod.write_text(__EXTRA_PEAKS_MODULE__)
