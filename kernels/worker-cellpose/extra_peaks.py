@@ -114,6 +114,10 @@ def inject_extra_peaks(arr: np.ndarray, t: int, zarr_arr, downsample, voxel_size
         _CP_STATE["unet"] += len(arr)
         if len(cents) == 0:
             return arr
+        # sanity gate: if the auxiliary detector fires far more than the UNet, it is hallucinating (debris/noise) -> skip frame
+        if len(arr) and len(cents) / float(len(arr)) > _env_f("BIOHUB_EXTRA_PEAKS_MAX_RATIO", 1e9):
+            _CP_STATE["skipped"] = _CP_STATE.get("skipped", 0) + 1
+            return arr
         cp_um = cents * vs
         radius = _env_f("BIOHUB_EXTRA_PEAKS_RADIUS_UM", 3.0)
         if len(arr):
@@ -150,6 +154,6 @@ def inject_extra_peaks(arr: np.ndarray, t: int, zarr_arr, downsample, voxel_size
 def report(stem: str = ""):
     s = _CP_STATE
     print(f"EXTRA_PEAKS_SUMMARY {stem}: frames={s['frames']} unet={s['unet']} cellpose_raw={s['raw']} added={s['added']} "
-          f"({(100.0 * s['added'] / max(s['unet'], 1)):.1f}% of unet) cellpose_secs={s['secs']:.0f} failed={s['failed']}", flush=True)
-    for k in ("frames", "raw", "added", "unet", "secs"):
+          f"({(100.0 * s['added'] / max(s['unet'], 1)):.1f}% of unet) cellpose_secs={s['secs']:.0f} ratio_skipped={s.get('skipped', 0)} failed={s['failed']}", flush=True)
+    for k in ("frames", "raw", "added", "unet", "secs", "skipped"):
         s[k] = 0
