@@ -82,7 +82,10 @@ def build(var):
     assert len(anchor) == 1, anchor
     env = ''.join(f'os.environ["{k}"] = "{v}"\n' for k, v in VARIANTS[var].items())
     src = CELL.replace('__EXTRA_PEAKS_MODULE__', repr(MODULE)).replace('__ENV__', env)
-    nb['cells'].insert(anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": src.splitlines(keepends=True)})
+    # splice INSIDE the patch cell, before the test-shard launch (a separate later cell would only affect the validator)
+    cell_src = ''.join(nb['cells'][anchor[0]]['source']); marker = '\n\ndef list_test_stems() -> list[str]:'
+    assert cell_src.count(marker) == 1, cell_src.count(marker)
+    nb['cells'][anchor[0]]['source'] = cell_src.replace(marker, '\n\n' + src + marker, 1).splitlines(keepends=True)
     if var.startswith('q'):  # third model: Pepper SWA used only as a candidate source (secondary blend untouched)
         import importlib.util as _ilu; _spec = _ilu.spec_from_file_location('pepper_build', 'kernels/worker-pepper/build.py'); pb = _ilu.module_from_spec(_spec); _spec.loader.exec_module(pb)
         cand_src = ('# Materialize Pepper SWA as a standalone candidate model (pilkwang config.json)\nimport glob, hashlib, shutil, os\n' + pb.find(pb.SWA, 'synthetic_5fold_swa.pth') +
@@ -106,8 +109,10 @@ def build(var):
     out = f'kernels/worker-cellpose/{var}'; os.makedirs(out, exist_ok=True)
     json.dump(nb, open(f'{out}/{slug}.ipynb', 'w'), indent=1); json.dump(meta, open(f'{out}/kernel-metadata.json', 'w'), indent=2)
     chk = json.load(open(f'{out}/{slug}.ipynb'))
-    compile(''.join(chk['cells'][anchor[0] + 1]['source']), 'cell', 'exec')
-    print(var, '->', out, 'cells', len(chk['cells']), 'inserted at', anchor[0] + 1)
+    pc = [i for i, c in enumerate(chk['cells']) if 'EXTRA_PEAKS patch installed' in ''.join(c['source'])]; assert len(pc) == 1, pc
+    cs = ''.join(chk['cells'][pc[0]]['source']); compile(cs, 'cell', 'exec')
+    assert cs.index('EXTRA_PEAKS patch installed') < cs.index('def list_test_stems'), 'injection must precede shard launch'
+    print(var, '->', out, 'cells', len(chk['cells']), 'spliced into cell', pc[0])
 
 for v in (sys.argv[1:] or ['a', 'b']):
     build(v)

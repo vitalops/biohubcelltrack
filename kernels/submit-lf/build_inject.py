@@ -16,11 +16,15 @@ env = ''.join(f'os.environ["{k}"] = "{v}"\n' for k, v in wb.VARIANTS[var].items(
 cell = wb.CELL.replace('__EXTRA_PEAKS_MODULE__', repr(wb.MODULE)).replace('__ENV__', env)
 anchor = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_EDGE_TTA_ACTIVE' in ''.join(c['source']) and 'write_text' in ''.join(c['source'])]
 assert len(anchor) == 1, anchor
-nb['cells'].insert(anchor[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": cell.splitlines(keepends=True)})
+cell_src = ''.join(nb['cells'][anchor[0]]['source']); marker = '\n\ndef list_test_stems() -> list[str]:'
+assert cell_src.count(marker) == 1, cell_src.count(marker)
+nb['cells'][anchor[0]]['source'] = cell_src.replace(marker, '\n\n' + cell + marker, 1).splitlines(keepends=True)
 sec = [i for i, c in enumerate(nb['cells']) if 'SECONDARY_WEIGHTS_ROOT = ' in ''.join(c['source'])]
 assert len(sec) == 1, sec
 nb['cells'].insert(sec[0] + 1, {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": pb.SEC_SWAP(pb.SWA, 'synthetic_5fold_swa.pth', 'PEPPER SWA').splitlines(keepends=True)})
 if pb.PEP_DS not in meta['dataset_sources']: meta['dataset_sources'].append(pb.PEP_DS)
 json.dump(nb, open(P, 'w'), indent=1); json.dump(meta, open(M, 'w'), indent=2)
 chk = json.load(open(P))
-print('variant', var, '| cells', len(chk['cells']), '| swap at', [i for i, c in enumerate(chk['cells']) if 'PEPPER SWA' in ''.join(c['source'])], '| inject at', [i for i, c in enumerate(chk['cells']) if 'EXTRA_PEAKS patch' in ''.join(c['source'])], '| env', wb.VARIANTS[var])
+pc = [i for i, c in enumerate(chk['cells']) if 'EXTRA_PEAKS patch' in ''.join(c['source'])]; cs = ''.join(chk['cells'][pc[0]]['source']); compile(cs, 'cell', 'exec')
+assert cs.index('EXTRA_PEAKS patch installed') < cs.index('def list_test_stems') and 'Launching' in cs, 'injection must precede shard launch'
+print('variant', var, '| cells', len(chk['cells']), '| swap at', [i for i, c in enumerate(chk['cells']) if 'PEPPER SWA' in ''.join(c['source'])], '| injection spliced into cell', pc, '| env', wb.VARIANTS[var])

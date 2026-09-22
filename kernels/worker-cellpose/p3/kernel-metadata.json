@@ -14,10 +14,7 @@
     "pilkwang/biohub-tracking-support-pack-50ep-v1",
     "subinium/pytorch251-cu118-p100-wheelhouse-public",
     "abhijithneilabraham/biohub-mitosis-gate-v1",
-    "bhpepper/biohub-synthetic-5fold-ensemble-v1",
-    "benjaminparrish/biohub-cellpose-stack-3-1-1-2",
-    "khanzkhan/biohub-cellpose-model",
-    "mkamijo/cellpose-offline-wheelhouse"
+    "bhpepper/biohub-synthetic-5fold-ensemble-v1"
   ],
   "competition_sources": [
     "biohub-cell-tracking-during-development"
