@@ -1,11 +1,11 @@
 {
-  "id": "abhijithneilabraham/biohub-submit-full",
-  "title": "biohub-submit-full",
-  "code_file": "biohub-submit-full.ipynb",
+  "id": "abhijithneilabraham/biohub-w-cellpose-p4",
+  "title": "biohub-w-cellpose-p4",
+  "code_file": "biohub-w-cellpose-p4.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
-  "enable_gpu": false,
+  "enable_gpu": true,
   "enable_tpu": false,
   "enable_internet": false,
   "dataset_sources": [

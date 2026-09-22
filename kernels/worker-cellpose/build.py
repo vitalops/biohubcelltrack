@@ -11,15 +11,17 @@ DATASETS = ['benjaminparrish/biohub-cellpose-stack-3-1-1-2', 'khanzkhan/biohub-c
 CELL = r'''# === Cellpose extra-candidate injection (public finetuned nuclei model, no training) ===
 import subprocess, sys, glob, os, importlib
 _wheel_dirs = sorted({os.path.dirname(p) for p in glob.glob("/kaggle/input/**/*.whl", recursive=True)})
-_need = ["fastremap", "fill_voids", "roifile", "natsort"]
-_missing = [m for m in _need if importlib.util.find_spec(m) is None]
-_cmd = [sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "-q", "--force-reinstall"]
-for d in _wheel_dirs: _cmd += ["--find-links", d]
-# Kaggle ships cellpose 4.x, which refuses CP3 checkpoints -> pin the 3.1.1.2 wheel from the attached stack.
-_r = subprocess.run(_cmd + ["cellpose==3.1.1.2"] + _missing, capture_output=True, text=True)
-print("cellpose deps install rc", _r.returncode, (_r.stderr or "")[-600:])
-import cellpose; print("cellpose", cellpose.version if hasattr(cellpose, "version") else "?")
-assert str(getattr(cellpose, "version", "")).startswith("3."), "cellpose 3.x required for CP3 checkpoints"
+__ENV__
+if os.environ.get("BIOHUB_EXTRA_PEAKS_SOURCE", "cellpose") in ("cellpose", "both"):
+    _need = ["fastremap", "fill_voids", "roifile", "natsort"]
+    _missing = [m for m in _need if importlib.util.find_spec(m) is None]
+    _cmd = [sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "-q", "--force-reinstall"]
+    for d in _wheel_dirs: _cmd += ["--find-links", d]
+    # Kaggle ships cellpose 4.x, which refuses CP3 checkpoints -> pin the 3.1.1.2 wheel from the attached stack.
+    _r = subprocess.run(_cmd + ["cellpose==3.1.1.2"] + _missing, capture_output=True, text=True)
+    print("cellpose deps install rc", _r.returncode, (_r.stderr or "")[-600:])
+    import cellpose; print("cellpose", cellpose.version if hasattr(cellpose, "version") else "?")
+    assert str(getattr(cellpose, "version", "")).startswith("3."), "cellpose 3.x required for CP3 checkpoints"
 from cellpose import models as _cpm  # import check
 
 _mod = REPO_DIR / "src" / "biohub_tracking" / "extra_peaks.py"
@@ -59,7 +61,6 @@ _s = "_SEC_STASH = {}\n_CAND_MODEL = None\n" + _s
 if "\nimport os\n" not in _s: _s = "import os\n" + _s
 compile(_s, str(_ps), "exec"); _ps.write_text(_s)
 assert "_inj_extra(" in _ps.read_text()
-__ENV__
 print("EXTRA_PEAKS patch installed:", {k: v for k, v in os.environ.items() if k.startswith("BIOHUB_EXTRA_PEAKS") or k.startswith("BIOHUB_CP_")})
 '''
 
@@ -69,6 +70,7 @@ VARIANTS = {
   'p': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
   'p2': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_EXTRA_PEAKS_MIN_UNET': '400', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
   'p3': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.995', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.5', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
+  'p4': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_EXTRA_PEAKS_MIN_UNET': '200', 'BIOHUB_SECONDARY_DETECTION_WEIGHT': '0.001'},
   'q': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '0.5', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
   'q2': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
   'q3': {'BIOHUB_EXTRA_PEAKS': '1', 'BIOHUB_EXTRA_PEAKS_SOURCE': 'secondary', 'BIOHUB_SEC_PEAKS_THR': '0.985', 'BIOHUB_EXTRA_PEAKS_RADIUS_UM': '3.0', 'BIOHUB_EXTRA_PEAKS_MAX_FRAC': '1.0', 'BIOHUB_EXTRA_PEAKS_MIN_UNET': '400', 'BIOHUB_CAND_MODEL_WEIGHTS': '/kaggle/working/cand_model/edge_predictor_best.pth'},
@@ -100,7 +102,7 @@ def build(var):
         if pb.PEP_DS not in meta['dataset_sources']: meta['dataset_sources'].append(pb.PEP_DS)
     slug = f'biohub-w-cellpose-{var}'
     meta['id'] = f'abhijithneilabraham/{slug}'; meta['title'] = slug; meta['code_file'] = f'{slug}.ipynb'; meta.pop('id_no', None)
-    for d in DATASETS:
+    for d in (DATASETS if VARIANTS[var].get('BIOHUB_EXTRA_PEAKS_SOURCE', 'cellpose') != 'secondary' else []):
         if d not in meta['dataset_sources']: meta['dataset_sources'].append(d)
     out = f'kernels/worker-cellpose/{var}'; os.makedirs(out, exist_ok=True)
     json.dump(nb, open(f'{out}/{slug}.ipynb', 'w'), indent=1); json.dump(meta, open(f'{out}/kernel-metadata.json', 'w'), indent=2)
