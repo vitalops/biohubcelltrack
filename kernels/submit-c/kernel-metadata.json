@@ -16,9 +16,12 @@
     "pilkwang/biohub-deepcenter-unet3d-center-prior-v1",
     "pilkwang/biohub-temporal-unet3d-seed314159-v1",
     "pilkwang/biohub-tracking-support-pack-50ep-v1",
-    "giorgosi/biohub-divnet-v2"
+    "giorgosi/biohub-divnet-v2",
+    "abhijithneilabraham/biohub-mitosis-gate-v1"
   ],
-  "kernel_sources": [],
+  "kernel_sources": [
+    "abhijithneilabraham/biohub-gate3-merge"
+  ],
   "competition_sources": [
     "biohub-cell-tracking-during-development"
   ],
