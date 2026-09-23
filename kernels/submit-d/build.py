@@ -23,14 +23,27 @@ after = ps.index('\n\n\n', start + m.start() + 100)
 module = ps[start:after]
 assert 'DIVNET_BUNDLE = load_divnet_mitosis_model()' in module and 'def divnet_score_division' in module
 
-# 2. the veto hook at the safe-division admission site (the surrounding block is byte-identical in both kernels)
-HOOK_ANCHOR = """            if valid_division:
-                filtered.extend([top1, top2])"""
-hi = ps.index('            if valid_division and globals().get("DIVNET_VERIFY", True):')
-hook = ps[hi:ps.index(HOOK_ANCHOR, hi)]
-assert 'divnet_score_division(' in hook and 'divnet_vetoed_divisions' in hook
-assert os_.count(HOOK_ANCHOR) == 1, os_.count(HOOK_ANCHOR)
-os_new = os_.replace(HOOK_ANCHOR, hook + HOOK_ANCHOR, 1)
+# 2. veto hook at the SAFE-DIVISION ADMISSION site (the path our config actually uses;
+#    the public kernel's geometry-filter path is disabled in our config, so hooking there is a no-op).
+ADMIT_ANCHOR = """            candidate = nodes_by_id[candidate_id]
+            added.append({"""
+assert os_.count(ADMIT_ANCHOR) == 1, os_.count(ADMIT_ANCHOR)
+veto = """            candidate = nodes_by_id[candidate_id]
+            if globals().get("DIVNET_VERIFY", True) and globals().get("DIVNET_BUNDLE") is not None:
+                _existing = out_by_source.get(source_id, [])
+                _sib = nodes_by_id.get(int(_existing[0])) if _existing else None
+                if _sib is not None:
+                    _p = divnet_score_division(
+                        dataset, int(nodes_by_id[source_id]["t"]), nodes_by_id[source_id],
+                        _sib, candidate, globals().get("DIVNET_BUNDLE"), frame_cache,
+                    )
+                    if _p is not None:
+                        stats["divnet_scored"] = stats.get("divnet_scored", 0) + 1
+                        if _p < float(globals().get("DIVNET_MIN_PROB", 0.50)):
+                            stats["divnet_vetoed_divisions"] = stats.get("divnet_vetoed_divisions", 0) + 1
+                            continue
+            added.append({"""
+os_new = os_.replace(ADMIT_ANCHOR, veto, 1)
 
 # 3. DivNet module must be defined before the pipeline runs: put it just before the DeepCenter detector load
 anchor_mod = '\nDEEPCENTER_VETO_DETECTOR = load_deepcenter_veto_detector()'
