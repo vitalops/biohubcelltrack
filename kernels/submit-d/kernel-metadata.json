@@ -1,0 +1,26 @@
+{
+  "id": "abhijithneilabraham/biohub-submit-d",
+  "title": "biohub-submit-d",
+  "code_file": "biohub-submit-d.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "pilkwang/biohub-deepcenter-unet3d-center-prior-v1",
+    "pilkwang/biohub-temporal-unet3d-seed314159-v1",
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "subinium/pytorch251-cu118-p100-wheelhouse-public",
+    "abhijithneilabraham/biohub-mitosis-gate-v1",
+    "giorgosi/biohub-divnet-v2"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [
+    "abhijithneilabraham/biohub-gate3-merge"
+  ],
+  "model_sources": []
+}
