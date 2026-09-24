@@ -11,6 +11,9 @@ def patched(self, response_type, http_response):
     return orig(self, response_type, http_response)
 khc.KaggleHttpClient._prepare_response = patched
 slug, msg, versions = sys.argv[1], sys.argv[2], sys.argv[3].split(",")
+# Kaggle RE-RUNS the submitted notebook version on the hidden test, so submitting a stale/broken
+# version silently ships old code. Never fall back to a version below the first one requested.
+versions = [v for v in versions if int(v) >= int(versions[0]) - 1]
 COMP = "biohub-cell-tracking-during-development"
 api = KaggleApi(); api.authenticate()
 with api.build_kaggle_client() as kg:
