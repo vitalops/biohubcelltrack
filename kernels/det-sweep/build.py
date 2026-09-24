@@ -16,6 +16,22 @@ def build(slug, var, value):
     cs2 = cs.replace(old.group(0), f'os.environ["{var}"] = "{value}"', 1)
     assert cs2 != cs and cs2.count(f'os.environ["{var}"]') == 1
     nb['cells'][ci[0]]['source'] = cs2.splitlines(keepends=True)
+    # the notebook has a configuration-drift guard that pins expected values; keep it in sync
+    gi = [i for i, c in enumerate(nb['cells']) if '_EXPECTED_NUMERIC' in ''.join(c['source'])]
+    assert len(gi) == 1, gi
+    gs = ''.join(nb['cells'][gi[0]]['source'])
+    gm = re.search(rf'("{var}":\s*)([0-9.]+)', gs)
+    if gm:
+        gs2 = gs.replace(gm.group(0), gm.group(1) + str(float(value)), 1)
+        assert gs2 != gs
+        nb['cells'][gi[0]]['source'] = gs2.splitlines(keepends=True)
+        print(f'  guard {var}: {gm.group(2)} -> {float(value)}')
+    else:
+        gt = re.search(rf'("{var}":\s*)"([^"]*)"', gs)
+        if gt:
+            gs2 = gs.replace(gt.group(0), f'"{var}": "{value}"', 1); assert gs2 != gs
+            nb['cells'][gi[0]]['source'] = gs2.splitlines(keepends=True)
+            print(f'  guard {var}: {gt.group(2)} -> {value}')
     meta.update({'id': f'abhijithneilabraham/{slug}', 'title': slug, 'code_file': f'{slug}.ipynb'}); meta.pop('id_no', None)
     meta['dataset_sources'] = [d for d in meta['dataset_sources'] if 'bhpepper' not in d]
     d = f'kernels/det-sweep/{slug}'; os.makedirs(d, exist_ok=True)
