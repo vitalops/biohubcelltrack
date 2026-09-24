@@ -31,7 +31,9 @@ assert os_.count(ADMIT_ANCHOR) == 1, os_.count(ADMIT_ANCHOR)
 veto = """            candidate = nodes_by_id[candidate_id]
             if globals().get("DIVNET_VERIFY", True) and globals().get("DIVNET_BUNDLE") is not None:
                 _existing = out_by_source.get(source_id, [])
-                _sib = nodes_by_id.get(int(_existing[0])) if _existing else None
+                _sib_edge = _existing[0] if _existing else None
+                _sib_id = _sib_edge.get("target_id") if isinstance(_sib_edge, dict) else _sib_edge
+                _sib = nodes_by_id.get(int(_sib_id)) if _sib_id is not None else None
                 if _sib is not None:
                     _p = divnet_score_division(
                         dataset, int(nodes_by_id[source_id]["t"]), nodes_by_id[source_id],
