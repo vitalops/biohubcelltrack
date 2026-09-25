@@ -122,3 +122,8 @@ The three most-voted recent public kernels (`kunaldesale2408/biohub-cell-trackin
 **ref 56544050 = `kernels/submit-g`** = `kunaldesale2408/biohub-cell-tracking` verbatim: pilkwang weights + **v1284 coordinate-refinement head** (`anvithpothula/biohub-v1284-head-s075`, candidate mode) + motion-relink flow (seed, K 12, radius 40 µm, tight 5.5) + DC safe-div 0.25 + ILP timeout 1200 s. First public base that actually reproduces above its predecessors, and the first thing to beat 0.948 in three weeks.
 Confirms the hypothesis: **sub-voxel position correction helps, node-count changes hurt.**
 Next: `kernels/submit-h` (this base + our gate v3m fork prune thr 0.5, built by `kernels/submit-h/build_merge.py`, pushed v1) — our prune was worth +0.009 on the ritesh base and 0 on Zharov, so it is the natural first overlay. Selection now: **0.953 (ref 56544050)**, not the old 0.948.
+
+### Our overlays on the 0.953 base
+- `kernels/submit-h` = 0.953 base + **gate v3m fork prune** (thr 0.5). Our learned mitosis classifier, mined from predicted graphs across 108 train videos (GroupKFold AUC 0.977); was +0.009 on the ritesh base.
+- `kernels/submit-i` = 0.953 base + **DivNet division veto** (giorgosi/biohub-divnet-v2 on the safe-division admission path, thr 0.50). The 0.953 base has no division verifier at all, and division jaccard is 10% of the metric.
+Both are single deltas off the verified 0.953, so each result is attributable. `V1284_MODE` has only three settings (zero / capture / candidate) and the base already uses the live one, and refinement is applied to every first-seen peak with the int16 cast removed so refined float coordinates survive into the graph — no free upgrade available there.
