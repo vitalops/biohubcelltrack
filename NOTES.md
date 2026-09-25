@@ -106,7 +106,7 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 | DET 0.960 | 0.948 |
 | DivNet veto, safe-division path (fixed v6) | 0.948 |
 | DivNet hooked on dead path (v1) | 0.948 |
-| DET 0.970 | pending |
+| DET 0.970 | 0.947 |
 
 **Interpretation**: four distinct configurations all land on exactly 0.948, including ones with measurably different node/edge counts. Either the public-LB rounding hides sub-0.001 moves, or the score is dominated by structure our knobs do not touch. DivNet fires but changes nothing that matters. Combined with Pepper/Cellpose (−0.020…−0.026) and the public-0.951 base (0.944), the conclusion is that **0.948 is a hard local optimum for this pipeline family and no configuration-level change will reach 0.96.**
 
@@ -115,3 +115,4 @@ The three most-voted recent public kernels (`kunaldesale2408/biohub-cell-trackin
 1. **v1284 coordinate-refinement head** — public dataset `anvithpothula/biohub-v1284-head-s075` (`v1284_head.pt`, 34 KB): a frozen-feature MLP 224→32→3 that applies a bounded sub-voxel delta to each detected center. It moves nodes without changing node counts, so it can only help the metric's 7 µm node matching. This is the safest class of change we have seen (everything that changed node counts lost 0.02+).
 2. **Motion-relink flow** (`BIOHUB_MOTION_RELINK_FLOW_MODE=seed`, K 12, radius 40 µm, tight 5.5) — pure graph postprocessing, the class that historically transfers.
 `kernels/submit-g` = that 180-vote kernel verbatim (backup `base-kunaldesale-public.ipynb.bak`), verification-first. If it clears 0.948, merge our gate v3m prune next; if it lands near 0.948, port only the refinement head onto our base as a single delta.
+- **DET sweep closed**: 0.960 = 0.948, 0.965 = 0.948, 0.970 = 0.947. Our threshold is at the optimum; fewer nodes costs 0.001, more nodes gains nothing. DivNet veto = 0.948 (fires but changes no scored division). Every configuration-level knob on this pipeline is now measured and flat.
