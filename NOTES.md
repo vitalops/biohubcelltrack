@@ -98,3 +98,14 @@ Competition: `biohub-cell-tracking-during-development` (deadline 2026-09-29). Ac
 - **Submission-version hazard (2026-09-24)**: a stale watcher called `verify_submit.py ... 4,5,3` and submitted **version 4 of submit-d, i.e. the crashed pre-fix code** (ref 56525827) — Kaggle re-runs the chosen version on the hidden test, so a broken version ships broken. Corrected by explicitly submitting v6 (ref 56528309). `verify_submit.py` now refuses fallbacks more than one version below the first requested. Rule: **one watcher per kernel; kill the old one before arming a new one.**
 - **DET 0.960 = 0.948** (ref 56513296), identical to DET 0.965 despite +36/+287/-8/+165 nodes. The detection threshold is not a live knob at 3-decimal resolution; awaiting DET 0.970 (submit-f) to confirm the plateau.
 - **DET 0.970 submitted ref 56532922** (nodes 25568/20249/6149/70009, i.e. ~2% fewer than 0.965). With 0.960 = 0.948 and 0.965 = 0.948, this brackets the detection threshold from both sides.
+
+## LB probe results (2026-09-25) — the 0.948 plateau
+| change | LB |
+|---|---|
+| base (DET 0.965) | 0.948 |
+| DET 0.960 | 0.948 |
+| DivNet veto, safe-division path (fixed v6) | 0.948 |
+| DivNet hooked on dead path (v1) | 0.948 |
+| DET 0.970 | pending |
+
+**Interpretation**: four distinct configurations all land on exactly 0.948, including ones with measurably different node/edge counts. Either the public-LB rounding hides sub-0.001 moves, or the score is dominated by structure our knobs do not touch. DivNet fires but changes nothing that matters. Combined with Pepper/Cellpose (−0.020…−0.026) and the public-0.951 base (0.944), the conclusion is that **0.948 is a hard local optimum for this pipeline family and no configuration-level change will reach 0.96.**
