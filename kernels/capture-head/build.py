@@ -33,10 +33,9 @@ from scipy.spatial import cKDTree
 MATCH_UM = float(os.environ.get('HEAD_MATCH_UM', '3.0'))
 MAX_UM = float(os.environ.get('HEAD_MAX_UM', '2.0'))       # the deployed head clamps displacement to 2 um
 PER_FRAME = int(os.environ.get('HEAD_PER_FRAME', '220'))   # subsample so the npz output stays small
-SPACING = np.array([1.625, 1.625, 1.625], dtype=np.float32)   # head predicts in these units
-VOXEL = np.array(VOXEL_SCALE_UM, dtype=np.float32)            # (1.625, 0.40625, 0.40625) um per voxel
-
-VOXEL_SCALE_UM = (1.625, 0.40625, 0.40625)
+VOXEL_SCALE_UM = (1.625, 0.40625, 0.40625)                    # um per ORIGINAL voxel (z, y, x)
+SPACING = np.array([1.625, 1.625, 1.625], dtype=np.float32)   # um per DOWNSAMPLED (1,4,4) grid unit
+VOXEL = np.array(VOXEL_SCALE_UM, dtype=np.float32)
 
 def graph_from_geff(path):
     import tracksdata as td
@@ -51,8 +50,15 @@ def gt_by_frame(stem):
         by_t.setdefault(int(row['t']), []).append((float(row['z']), float(row['y']), float(row['x'])))
     return {t: np.asarray(v, np.float32) for t, v in by_t.items()}
 
-rows_x, rows_y, rows_stem = [], [], []
 cap_root = Path('/kaggle/working/cap')
+# Archive the raw captures BEFORE labelling: prediction costs ~48 GPU-minutes, labelling is cheap and
+# can be redone from this tarball in a CPU kernel if anything below misbehaves.
+import subprocess as _sp
+if cap_root.exists():
+    _sp.run(['tar', '-cf', '/kaggle/working/cap_raw.tar', '-C', '/kaggle/working', 'cap'], check=False)
+    print('archived raw captures:', round(os.path.getsize('/kaggle/working/cap_raw.tar') / 1e6, 1), 'MB', flush=True)
+
+rows_x, rows_y, rows_stem = [], [], []
 stems = sorted(p.name for p in cap_root.iterdir() if p.is_dir()) if cap_root.exists() else []
 print('captured movies:', len(stems), stems[:6], flush=True)
 rng = np.random.default_rng(0)
@@ -64,6 +70,7 @@ for stem in stems:
     trees = {t: cKDTree(v * VOXEL) for t, v in gt.items() if len(v)}
     kept = 0
     for f in sorted((cap_root / stem).glob('*.npz')):
+      try:
         z = np.load(f)
         coords, feats = z['coords'], z['features']
         if not len(coords): continue
@@ -83,6 +90,8 @@ for stem in stems:
         if len(X) > PER_FRAME:
             sel = rng.choice(len(X), PER_FRAME, replace=False); X, Y = X[sel], Y[sel]
         rows_x.append(X.astype(np.float32)); rows_y.append(Y); rows_stem.extend([stem] * len(X)); kept += len(X)
+      except Exception as exc:
+        print('  frame skipped', f.name, type(exc).__name__, exc, flush=True)
     print(f'  {stem}: {kept} pairs', flush=True)
 
 if not rows_x:
@@ -92,6 +101,7 @@ print('PAIRS', X.shape, Y.shape, '| mean |delta| um', float(np.mean(np.linalg.no
 np.savez_compressed('/kaggle/working/head_pairs.npz', X=X, Y=Y, stem=S)
 print('saved head_pairs.npz', round(os.path.getsize('/kaggle/working/head_pairs.npz') / 1e6, 1), 'MB')
 import shutil; shutil.rmtree('/kaggle/working/cap', ignore_errors=True)
+os.remove('/kaggle/working/cap_raw.tar') if os.path.exists('/kaggle/working/cap_raw.tar') else None  # pairs saved, raw no longer needed
 '''
 
 def build(offset, count, slug):
