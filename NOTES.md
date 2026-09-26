@@ -150,3 +150,10 @@ Next kernel fits the same 224-32-3 architecture on the pooled pairs (so the depl
 **2. Node-count error is bidirectional and per-video, 30-58% in both directions.** Under-detected: 44b6_706092f0 T_pred 29329 vs T_true 69898 (-58%), 44b6_74d0c52e -43%, 44b6_7a302da0 -35%. Over-detected: 6bba_207c6aaf 17780 vs 11999 (+48%, worst edge jaccard 0.693), 6bba_07e24132 +31%, 44b6_267148e4 +16%. This is why the global DET sweep was flat (0.960/0.965/0.970 → 0.948/0.948/0.947): one threshold cannot serve both tails. An adaptive per-movie target density is the principled fix.
 **3. Our safe-division mechanism is noise.** safe_div_added ranges 1-47 per movie while division TP stays at 0-1, i.e. the geometric proposals almost never coincide with a GT division.
 **Next experiments, in expected-value order:** (a) DivNet as a division PROPOSER (it is a trained 3D mitosis CNN; we currently only use it to reject) scanning high-probability sites, measured by divJ on these same 20 movies; (b) the retrained refinement head already in flight; (c) adaptive per-movie detection density.
+
+### Division-recall experiments (`kernels/div-recall`, P100, no clicks)
+Built on `submit-i` (0.953 + DivNet at the admission site) plus the 20-movie validator. The 0.953 pipeline rejects division candidates by geometry (`divergence_rejected` alone was 545/903/83/2649 per movie in earlier logs) and then gate v3m prunes forks — both reduce the recall the metric is starving for.
+- `biohub-divr-geo`: geometric gates OFF (divergence, mutual-NN, symmetry tau 2.0), caps raised to 2%/1%, **DivNet off** — isolates the cost of the gates alone.
+- `biohub-divr-g0`: gates OFF, **DivNet decides** at prob ≥ 0.50.
+- `biohub-divr-g0d`: gates OFF, DivNet ≥ 0.70 (trades recall against the 7 FP we already carry).
+Read-out is `[base] n=20 adjusted_edge_jaccard=... division_jaccard=... (tp/fp/fn=...)` against the measured baseline 0.9192 / 0.1667 (6/7/23). Accept only if divJ rises enough that 0.1*ΔdivJ exceeds any drop in adjusted edge jaccard.
