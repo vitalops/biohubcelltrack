@@ -32,7 +32,7 @@ from scipy.spatial import cKDTree
 
 MATCH_UM = float(os.environ.get('HEAD_MATCH_UM', '3.0'))
 MAX_UM = float(os.environ.get('HEAD_MAX_UM', '2.0'))       # the deployed head clamps displacement to 2 um
-PER_FRAME = int(os.environ.get('HEAD_PER_FRAME', '220'))   # subsample so the npz output stays small
+PER_FRAME = int(os.environ.get('HEAD_PER_FRAME', '400'))   # subsample so the npz output stays small
 VOXEL_SCALE_UM = (1.625, 0.40625, 0.40625)                    # um per ORIGINAL voxel (z, y, x)
 SPACING = np.array([1.625, 1.625, 1.625], dtype=np.float32)   # um per DOWNSAMPLED (1,4,4) grid unit
 VOXEL = np.array(VOXEL_SCALE_UM, dtype=np.float32)
@@ -83,10 +83,12 @@ for stem in stems:
         ok = np.isfinite(dist)
         if not ok.any(): continue
         delta_um = gt[t][idx[ok]] * VOXEL - det_um[ok]
-        mag = np.linalg.norm(delta_um, axis=1)
-        ok2 = mag <= MAX_UM
-        if not ok2.any(): continue
-        X = feats[ok][ok2]; Y = (delta_um[ok2] / SPACING).astype(np.float32)
+        # CLIP the target to the head's 2 um bound instead of discarding the sample: grid quantisation
+        # is 1.625 um per axis, so a hard 2 um drop threw away ~99% of matches (4785 pairs from 24 movies).
+        mag = np.linalg.norm(delta_um, axis=1, keepdims=True)
+        scale = np.minimum(1.0, MAX_UM / np.maximum(mag, 1e-6))
+        delta_um = delta_um * scale
+        X = feats[ok]; Y = (delta_um / SPACING).astype(np.float32)
         if len(X) > PER_FRAME:
             sel = rng.choice(len(X), PER_FRAME, replace=False); X, Y = X[sel], Y[sel]
         rows_x.append(X.astype(np.float32)); rows_y.append(Y); rows_stem.extend([stem] * len(X)); kept += len(X)
@@ -101,7 +103,7 @@ print('PAIRS', X.shape, Y.shape, '| mean |delta| um', float(np.mean(np.linalg.no
 np.savez_compressed('/kaggle/working/head_pairs.npz', X=X, Y=Y, stem=S)
 print('saved head_pairs.npz', round(os.path.getsize('/kaggle/working/head_pairs.npz') / 1e6, 1), 'MB')
 import shutil; shutil.rmtree('/kaggle/working/cap', ignore_errors=True)
-os.remove('/kaggle/working/cap_raw.tar') if os.path.exists('/kaggle/working/cap_raw.tar') else None  # pairs saved, raw no longer needed
+# keep cap_raw.tar as a kernel output: prediction is ~48 GPU-minutes, relabelling from the tar is free
 '''
 
 def build(offset, count, slug):
