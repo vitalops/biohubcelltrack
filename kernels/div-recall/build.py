@@ -34,6 +34,27 @@ def build(var):
     nb = json.load(open(BASE)); w = json.load(open(W))
     cells = [w['cells'][0]] + nb['cells'] + [w['cells'][8], w['cells'][9]]
     nb2 = {'cells': cells, 'metadata': nb.get('metadata', {}), 'nbformat': nb.get('nbformat', 4), 'nbformat_minor': nb.get('nbformat_minor', 5)}
+    # DivNet reads raw frames through read_test_frame(), which only looks under TEST_DIR. On the
+    # validator path the movies live in train/, so every call raised, divnet_score_division swallowed
+    # it and returned None, and NOTHING was ever vetoed (geo and g0 produced byte-identical numbers).
+    pi = [i for i, c in enumerate(nb2['cells']) if 'def read_test_frame' in ''.join(c['source'])]
+    assert len(pi) == 1, pi
+    ps = ''.join(nb2['cells'][pi[0]]['source'])
+    old_rd = '    zarr_path = TEST_DIR / f"{dataset}.zarr"\n'
+    assert ps.count(old_rd) == 1, ps.count(old_rd)
+    new_rd = ('    zarr_path = TEST_DIR / f"{dataset}.zarr"\n'
+              '    if not (zarr_path / "0" / "zarr.json").is_file():\n'
+              '        _alt = (COMP_DIR / "train") / f"{dataset}.zarr"\n'
+              '        if (_alt / "0" / "zarr.json").is_file():\n'
+              '            zarr_path = _alt\n')
+    ps = ps.replace(old_rd, new_rd, 1)
+    # make the veto observable: print the counters the hook maintains
+    # print the veto counters right before the short-track filter (anchor is stable in this base)
+    old_pr = '    nodes_by_id, edges = filter_short_track_components(nodes_by_id, edges, stats)'
+    assert ps.count(old_pr) == 1, ps.count(old_pr)
+    ps = ps.replace(old_pr, '    print(f"  [{dataset}] divnet scored={stats.get(\'divnet_scored\', 0)} vetoed={stats.get(\'divnet_vetoed_divisions\', 0)}", flush=True)\n' + old_pr, 1)
+    compile(ps, 'rd', 'exec')
+    nb2['cells'][pi[0]]['source'] = ps.splitlines(keepends=True)
     ci = [i for i, c in enumerate(nb2['cells']) if 'BIOHUB_DET_THRESHOLD' in ''.join(c['source'])][0]
     cs = ''.join(nb2['cells'][ci]['source']).rstrip('\n')
     cs += '\n\n# ---- division-recall variant: ' + var + ' ----\n'
