@@ -168,3 +168,8 @@ Read-out is `[base] n=20 adjusted_edge_jaccard=... division_jaccard=... (tp/fp/f
 | held-out 6 movies: public head | 1.0891 µm | -3.80% |
 | held-out 6 movies: **our head (fit on 18)** | 1.0544 µm | **-6.87%** |
 Two conclusions. First, our capture and labelling reproduce the author's own published figure (-11.1% vs their -10.8%), so the pipeline is correct. Second, a head fit on 18 movies already beats the public head by ~3 points on movies neither was evaluated on during our fit, using only 4785 heavily-biased pairs. Architecture kept identical (224-32-3 + `bounded()`), checkpoint format identical ({state_dict, mean, scale}), so the deployed loader needs no change. Next: the clip-fixed captures (~40x more pairs, unbiased targets) → fit on 48 movies → hold out for an honest number → submit.
+
+### OUR refit head shipped: `kernels/submit-m` (dataset `abhijithneilabraham/biohub-v1284-head-ours-v1`)
+5-fold movie-level CV on 9415 pairs from 48 train movies: baseline **1.1533 µm**, public s075 **-6.68%**, **ours -12.65%**, ours better in all 5 folds (-1.3% to -9.8% relative). Final head fit on all 48 movies (best of 3 seeds by train residual, 0.8285 µm), architecture and checkpoint format unchanged ({state_dict, mean, scale}; 33 KB), max applied shift 1.45 µm (inside the 2 µm bound).
+Kernel patches only the head lookup and falls back to the public head if our dataset is missing, so the run can never silently lose refinement. Weight copy kept at `weights/v1284-ours/v1284_head.pt`.
+This is the submission the user reserved the next slot for.
