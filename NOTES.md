@@ -133,3 +133,4 @@ Both are single deltas off the verified 0.953, so each result is attributable. `
 
 ### Error-mode analysis (no clicks, P100 auto-run): `kernels/analyze-953` → `biohub-a953`
 The 0.953 pipeline scored against GT on **~20 TRAIN videos** (10 per embryo-type prefix, vs the 4 we had used), reusing the official-metric scorer and `decompose_errors` from `worker-prune3` (detection misses vs fragmentation vs wrong association, plus division confusion). Purpose: replace knob-guessing with a measured breakdown of where the remaining 0.047 sits, per video and per embryo type. Runs on the free P100 auto-run path, so it costs no T4 save and no submission.
+- **submit-k submitted ref 56569679** (amanatar/optimized-biohub-max-score verbatim).
