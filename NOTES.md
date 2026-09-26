@@ -158,3 +158,13 @@ Built on `submit-i` (0.953 + DivNet at the admission site) plus the 20-movie val
 - `biohub-divr-g0d`: gates OFF, DivNet ≥ 0.70 (trades recall against the 7 FP we already carry).
 Read-out is `[base] n=20 adjusted_edge_jaccard=... division_jaccard=... (tp/fp/fn=...)` against the measured baseline 0.9192 / 0.1667 (6/7/23). Accept only if divJ rises enough that 0.1*ΔdivJ exceeds any drop in adjusted edge jaccard.
 - **capture v2 result: 4785 pairs from 24 movies, mean |delta| 1.14 µm** — far too few (~2 per frame from ~500 detections). Cause: I *dropped* every match whose displacement exceeded the head's 2 µm bound, but grid quantisation is 1.625 µm per axis, so most true displacements sit above it. Fix in v3: **clip** the target to 2 µm instead of discarding (`scale = min(1, 2/|delta|)`), raise the per-frame subsample to 400, and keep `cap_raw.tar` as a kernel output so relabelling never needs another 48 GPU-minutes.
+
+### Head-retraining validation (local, on cap-a's 4785 pairs)
+| measurement | mean centre error | vs baseline |
+|---|---|---|
+| no refinement (baseline) | 1.1425 µm | — |
+| public s075 head, all 24 movies | 1.0154 µm | **-11.13%** |
+| held-out 6 movies: baseline | 1.1321 µm | — |
+| held-out 6 movies: public head | 1.0891 µm | -3.80% |
+| held-out 6 movies: **our head (fit on 18)** | 1.0544 µm | **-6.87%** |
+Two conclusions. First, our capture and labelling reproduce the author's own published figure (-11.1% vs their -10.8%), so the pipeline is correct. Second, a head fit on 18 movies already beats the public head by ~3 points on movies neither was evaluated on during our fit, using only 4785 heavily-biased pairs. Architecture kept identical (224-32-3 + `bounded()`), checkpoint format identical ({state_dict, mean, scale}), so the deployed loader needs no change. Next: the clip-fixed captures (~40x more pairs, unbiased targets) → fit on 48 movies → hold out for an honest number → submit.
