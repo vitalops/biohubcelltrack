@@ -32,7 +32,7 @@ from scipy.spatial import cKDTree
 
 MATCH_UM = float(os.environ.get('HEAD_MATCH_UM', '3.0'))
 MAX_UM = float(os.environ.get('HEAD_MAX_UM', '2.0'))       # the deployed head clamps displacement to 2 um
-PER_FRAME = int(os.environ.get('HEAD_PER_FRAME', '400'))   # subsample so the npz output stays small
+PER_FRAME = int(os.environ.get('HEAD_PER_FRAME', '400'))   # never binds: GT is sparsely annotated (~2-6 nodes/frame)
 VOXEL_SCALE_UM = (1.625, 0.40625, 0.40625)                    # um per ORIGINAL voxel (z, y, x)
 SPACING = np.array([1.625, 1.625, 1.625], dtype=np.float32)   # um per DOWNSAMPLED (1,4,4) grid unit
 VOXEL = np.array(VOXEL_SCALE_UM, dtype=np.float32)
@@ -144,6 +144,11 @@ TEST_DIR = TRAIN_DIR  # the predictor reads movies from TEST_DIR""")
         compile(''.join(c['source']), slug, 'exec')
     print(slug, '| cells', len(nb['cells']), '| movies', offset, '..', offset + count)
 
+CHUNKS = [(0, 24, 'biohub-cap-a'), (24, 24, 'biohub-cap-b'), (48, 25, 'biohub-cap-c'), (73, 25, 'biohub-cap-d'),
+          (98, 25, 'biohub-cap-e'), (123, 25, 'biohub-cap-f'), (148, 25, 'biohub-cap-g'), (173, 22, 'biohub-cap-h')]
+
 if __name__ == '__main__':
-    build(0, 24, 'biohub-cap-a')
-    build(24, 24, 'biohub-cap-b')
+    want = sys.argv[1:]
+    for off, cnt, slug in CHUNKS:
+        if not want or slug.split('-')[-1] in want:
+            build(off, cnt, slug)
