@@ -173,3 +173,10 @@ Two conclusions. First, our capture and labelling reproduce the author's own pub
 5-fold movie-level CV on 9415 pairs from 48 train movies: baseline **1.1533 µm**, public s075 **-6.68%**, **ours -12.65%**, ours better in all 5 folds (-1.3% to -9.8% relative). Final head fit on all 48 movies (best of 3 seeds by train residual, 0.8285 µm), architecture and checkpoint format unchanged ({state_dict, mean, scale}; 33 KB), max applied shift 1.45 µm (inside the 2 µm bound).
 Kernel patches only the head lookup and falls back to the public head if our dataset is missing, so the run can never silently lose refinement. Weight copy kept at `weights/v1284-ours/v1284_head.pt`.
 This is the submission the user reserved the next slot for.
+
+### Division-recall results (20 movies; baseline adj 0.9192 / divJ 0.1667, tp/fp/fn 6/7/23)
+| variant | adj edge J | divJ | tp/fp/fn | proxy |
+|---|---|---|---|---|
+| baseline (0.953 config) | 0.9192 | 0.1667 | 6/7/23 | 0.9359 |
+| `geo` gates off, no DivNet | 0.9158 | 0.0894 | **11**/94/18 | 0.9247 |
+**Reading:** the geometric gates were indeed suppressing real divisions — true positives nearly double (6→11, FN 23→18) once divergence/mutual-NN/symmetry are off. But precision collapses (7→94 FP), so divJ falls. This is precisely the regime a learned gate is for: keep the 11 TP, cut the 94 FP. DivNet variants `g0` (≥0.50) and `g0d` (≥0.70) are measuring that now. Arithmetic: 11 TP with FP back at ~7 gives divJ 0.306 (+0.014 on the metric); at ~15 FP, 0.25 (+0.008).
