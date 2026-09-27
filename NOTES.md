@@ -229,3 +229,12 @@ Deadline 2026-12-14 (11 weeks), $50k, metric **CASMI Mean Average Precision**. L
 `casmi-b` (our cross-spectrum agreement rerank, L_MEAN 0.25 / L_MIN 0.10 / L_TOP 0.05) pushed next; it prints `AGREEMENT RERANK used on N/400 molecules` so the log proves the branch fired.
 - **Our CASMI addition ran and is submitted** (ref 56604478, base ref 56603181). Log: `AGREEMENT RERANK used on 345/400 molecules (L_MEAN=0.25, L_MIN=0.1, L_TOP=0.05)`, 3758 s. The 55 untouched molecules are the single-spectrum ones where the feature is by construction a no-op — so the pair of submissions isolates our change exactly: same base, same ranker, same candidates, only the final ordering differs on multi-spectrum molecules.
 - Both submissions were made **fully autonomously** (CPU kernels, `competition_submit_code`, no accelerator save).
+
+### CASMI first results: base 0.314, OURS 0.267 (-0.047)
+| submission | LB |
+|---|---|
+| `casmi-a` public 0.336 ranker verbatim (ref 56603181) | **0.314** |
+| `casmi-b` + our cross-spectrum agreement rerank 0.25/0.10/0.05 (ref 56604478) | **0.267** |
+**The base does not reproduce its claimed 0.336** (fifth such case this session, after biohub's 0.951→0.944, 0.950→0.877, Pepper 0.950→0.928, v1327→0.907). Absolute public claims are worthless; only our own paired measurements count.
+**Our addition hurt, and the diagnosis is in the base's own notes:** its author measured per-spectrum logits averaged = 0.468 vs merged-peak view = 0.459 vs mean-of-both = 0.475, i.e. *individual* spectra are the weaker evidence. My agreement statistics are computed from exactly those noisy per-spectrum scores, and `agree_min` is by definition dominated by the least informative spectrum of each molecule. Blend weights summing to 0.40 in rank space then overrode a ranker that already carries most of the signal.
+**Process error (the real lesson):** I picked 0.25/0.10/0.05 by guess and spent a submission on it, with no offline harness — the same mistake that wasted biohub submissions. **Next step is the harness, not another blind submission:** hold out molecules from `train.parquet` that have ≥2 spectra, run the identical pipeline on them, and compute MAP@25 so λ (and whether to keep `agree_min` at all) is decided offline. Only a variant that wins offline gets a submission.
