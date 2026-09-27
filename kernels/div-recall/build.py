@@ -49,6 +49,25 @@ def build(var):
               '            zarr_path = _alt\n')
     ps = ps.replace(old_rd, new_rd, 1)
     # make the veto observable: print the counters the hook maintains
+    # REAL BUG (upstream, in every public kernel that ships DivNet): the crop is passed as
+    #   from_numpy(padded).unsqueeze(0).unsqueeze(0)  ->  (1,1,4,16,32,32)
+    # but the first block is Conv3d(1,16), i.e. it wants (N,1,Z,Y,X). conv3d raised on the 6-D input,
+    # divnet_score_division swallowed it and returned None, so DivNet has never scored anything —
+    # not for us, and not in the public 0.951/0.953 notebooks either.
+    # Fix: treat the 4 time-steps as a batch of single-channel volumes and average their logits.
+    old_t = "        tensor = t_mod.from_numpy(padded).unsqueeze(0).unsqueeze(0).to(device=device, dtype=t_mod.float32)"
+    if ps.count(old_t) == 1:
+        ps = ps.replace(old_t, "        tensor = t_mod.from_numpy(padded).unsqueeze(1).to(device=device, dtype=t_mod.float32)  # (4,1,Z,Y,X)", 1)
+        old_l = """        with t_mod.inference_mode():
+            logit = model(tensor)
+            prob = float(t_mod.sigmoid(logit).squeeze().cpu().item())"""
+        assert ps.count(old_l) == 1, ps.count(old_l)
+        ps = ps.replace(old_l, """        with t_mod.inference_mode():
+            logit = model(tensor)
+            prob = float(t_mod.sigmoid(logit).mean().cpu().item())""", 1)
+        print('  patched DivNet input shape + logit reduction')
+    else:
+        print('  WARNING: DivNet tensor anchor not found, count =', ps.count(old_t))
     # surface the swallowed exception: divnet_score_division catches everything and returns None,
     # which is why scored=0 twice in a row told us nothing about WHY.
     old_exc = """    except Exception as e:
