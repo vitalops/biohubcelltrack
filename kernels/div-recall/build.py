@@ -49,6 +49,20 @@ def build(var):
               '            zarr_path = _alt\n')
     ps = ps.replace(old_rd, new_rd, 1)
     # make the veto observable: print the counters the hook maintains
+    # surface the swallowed exception: divnet_score_division catches everything and returns None,
+    # which is why scored=0 twice in a row told us nothing about WHY.
+    old_exc = """    except Exception as e:
+        return None"""
+    if ps.count(old_exc) == 1:
+        ps = ps.replace(old_exc, """    except Exception as e:
+        global _DIVNET_ERR_SHOWN
+        if not globals().get('_DIVNET_ERR_SHOWN'):
+            _DIVNET_ERR_SHOWN = True
+            import traceback
+            print('DIVNET_SCORE_FAILED:', type(e).__name__, e, flush=True)
+            traceback.print_exc()
+        return None""", 1)
+        ps = '_DIVNET_ERR_SHOWN = False\n' + ps
     # print the veto counters right before the short-track filter (anchor is stable in this base)
     old_pr = '    nodes_by_id, edges = filter_short_track_components(nodes_by_id, edges, stats)'
     assert ps.count(old_pr) == 1, ps.count(old_pr)
