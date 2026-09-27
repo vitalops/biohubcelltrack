@@ -1,0 +1,26 @@
+{
+  "id": "abhijithneilabraham/casmi-b",
+  "title": "casmi-b",
+  "code_file": "casmi-b.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [
+    "chemistry"
+  ],
+  "dataset_sources": [
+    "aidensong123/casmi26-offline-rdkit-2026033",
+    "prvsiyan/casmi26-ranker-features",
+    "prvsiyan/casmi26-fp-models",
+    "prvsiyan/chebi-lipidmaps-casmi26",
+    "prvsiyan/coconut-casmi26-candidates"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "enveda-CASMI26-molecule-id-mass-spectra"
+  ],
+  "model_sources": []
+}
