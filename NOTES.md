@@ -269,3 +269,8 @@ Two more CPU shots added, both on amanatar's current (strongest) base:
 4. `cpu-p` — strongest base + **working DivNet gate** (upstream 6-D Conv3d bug fixed, thr 0.70). Their relaxed division caps admit many more candidates, which is exactly where a real verifier should pay off.
 5. `cpu-q` — strongest base + working DivNet gate + **our gate v3m fork pruner**: two independent filters on the enlarged division set, one CNN-based (image evidence) and one GBM-based (graph features).
 Five CPU runs now cover the daily submission cap, all auto-submitting on completion, none touching the GPU pool.
+
+### The fixed DivNet runs — and rejects EVERY division (thr 0.70 miscalibrated)
+`biohub-cpu-sub` completed on CPU (prediction 373 min, ~6.2 h, no errors) and the counters prove the verifier finally executes: `divnet scored=341 vetoed=341`, `110/110`, `77/77`, `416/416` — **scored == vetoed on all four videos**, i.e. every candidate scores below 0.70. So the upstream 6-D Conv3d bug was real and is now fixed, but the checkpoint's output scale does not match the 0.70 threshold the public code assumes (unsurprising: that threshold was never exercised by anyone, since the call always threw). Our 4-frames-as-batch + mean-of-sigmoids reduction is a guess at the intended input format and may also be off.
+Consequence: this run strips *all* safe-division additions, so expect it at or slightly below the base. Submitted anyway as a data point (it also measures what removing every admitted division costs).
+**`cpu-p` and `cpu-q` share this threshold**, so they are likely compromised the same way. `cpu-n` (strongest base verbatim) and `cpu-o` (strongest base + our fork pruner) are the two clean shots.
