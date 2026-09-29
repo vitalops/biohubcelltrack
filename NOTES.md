@@ -244,3 +244,24 @@ Probe `biohub-cpu-probe` (CPU, one video, everything enabled): **prediction 87.8
 (The probe's final error was only my one-video slice tripping the notebook's own dataset-integrity guard, which expects all four stems — not a CPU problem.)
 **`kernels/cpu-sub` launched**: 0.953 pipeline + **the fixed DivNet division gate** (upstream `unsqueeze(0).unsqueeze(0)` → `unsqueeze(1)`, so Conv3d finally receives (N,1,Z,Y,X)), geometric gates opened so the classifier decides, `DIVNET_MIN_PROB=0.70`, per-video `divnet scored=/vetoed=` counters, validator confirmed disabled so only the 4 test videos run. Auto-submits on completion.
 **Honest expectation:** near-neutral. The measured deficit is division *recall* (6 TP / 23 FN); opening the gates lifted TP to 11 but produced 94 FP, and this run tests whether a working classifier removes those FPs. Upside ≈ +0.01, downside cannot touch the banked 0.953.
+
+## 2026-09-28 final push, CPU-only, three runs in flight (~6.5 h each, deadline 2026-09-29 23:59 UTC)
+**Public research first.** LB has climbed hard (top now **0.978**, was 0.974). No new weight datasets are used by any top kernel — the ecosystem still runs pilkwang primary + seed314159 secondary + the v1284 head. But **`amanatar/optimized-biohub-max-score` changed since we forked it** (we submitted its Sep-26 version = 0.953). Its current version relaxes exactly what our own 20-movie analysis identified as the deficit — **division recall**:
+| knob | our 0.953 fork | their current |
+|---|---|---|
+| DET_THRESHOLD | 0.965 | 0.960 |
+| GAP_CLOSE_UM | 5.0 | 5.8 |
+| SAFE_DIV_MAX_UM | 9.0 | 10.5 |
+| SAFE_DIV_SISTER_MAX_UM | 14.0 | 15.0 |
+| SAFE_DIV_DIVERGE_UM | 2.25 | 1.50 |
+| SAFE_DIV_HORIZON_FRAMES | — | **3** (new mechanism) |
+| SAFE_DIV_HORIZON_DIVERGE_UM | — | **2.80** (new) |
+| SAFE_DIV_FRAME_FRAC_CAP | 0.0076 | 0.012 |
+| SAFE_DIV_GLOBAL_FRAC_CAP | 0.00375 | 0.006 |
+| SHORT_TRACK_RESCUE_MIN_LEN | 4 | 3 |
+| DUAL_SEED_MIN_CANDIDATE_RETENTION | 0.90 | 0.75 |
+**Runs launched (all CPU, all headless, no GPU quota, no clicks):**
+1. `biohub-cpu-sub` — our 0.953 pipeline + the **fixed DivNet gate** (upstream 6-D Conv3d bug), geometric gates open.
+2. `cpu-n` — amanatar's **current** base verbatim: does their division-recall update beat 0.953?
+3. `cpu-o` — amanatar's current base **+ our gate v3m fork pruner** (our contribution on the stronger base; the pruner was neutral on the old base but it removes false forks, which is the failure mode their relaxations create).
+Each auto-submits on completion only if its log shows `Wrote /kaggle/working/submission.csv`. Banked 0.953 cannot be lost.
