@@ -265,3 +265,7 @@ Probe `biohub-cpu-probe` (CPU, one video, everything enabled): **prediction 87.8
 2. `cpu-n` — amanatar's **current** base verbatim: does their division-recall update beat 0.953?
 3. `cpu-o` — amanatar's current base **+ our gate v3m fork pruner** (our contribution on the stronger base; the pruner was neutral on the old base but it removes false forks, which is the failure mode their relaxations create).
 Each auto-submits on completion only if its log shows `Wrote /kaggle/working/submission.csv`. Banked 0.953 cannot be lost.
+Two more CPU shots added, both on amanatar's current (strongest) base:
+4. `cpu-p` — strongest base + **working DivNet gate** (upstream 6-D Conv3d bug fixed, thr 0.70). Their relaxed division caps admit many more candidates, which is exactly where a real verifier should pay off.
+5. `cpu-q` — strongest base + working DivNet gate + **our gate v3m fork pruner**: two independent filters on the enlarged division set, one CNN-based (image evidence) and one GBM-based (graph features).
+Five CPU runs now cover the daily submission cap, all auto-submitting on completion, none touching the GPU pool.
