@@ -299,3 +299,14 @@ Both completed final-day CPU submissions returned **blank public scores** with s
 **Cause:** the scoring re-run executes the submitted notebook against the hidden test with the kernel's own accelerator setting, i.e. CPU. Our CPU run needed 7.4 h for the four visible videos, so the re-run has no headroom and times out.
 **Correction to my earlier claim:** the CPU route *is* viable for producing a submission file locally (the user was right that a run is possible without GPU quota), but it is **not** viable for scoring a notebook-only competition — the constraint that matters is the re-run, not the authoring session. The only working path for this competition remains a GPU notebook, which the exhausted account-wide quota made impossible.
 **Final biohub result: 0.953.**
+
+### Final-day outcome: all CPU submissions returned blank (confirmed)
+| time | run | score |
+|---|---|---|
+| 06:29 | 0.953 pipeline + working DivNet gate | blank |
+| 06:33 | same version (duplicate) | blank |
+| 09:54 | updated base + our fork pruner | blank |
+| 09:58 | same version (duplicate) | blank |
+| 18:01 | cross-kernel combination + our pruner | blank/pending |
+Every one failed Kaggle's scoring re-run, exactly as the 7.4 h CPU prediction stage predicted. **We had already hit this in August** ('v91 merge via cpu consumer', 2026-08-24, also blank) — that precedent was in the ledger and I did not check it before committing the final day to CPU. That is the costliest mistake of the session: the last day produced zero scored submissions.
+**FINAL BIOHUB RESULT: 0.953** (ref 56569679, 2026-09-26, `amanatar/optimized-biohub-max-score` verbatim). 41 scored submissions, best public kernels ~0.95, LB winner 0.978.
