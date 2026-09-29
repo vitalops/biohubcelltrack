@@ -293,3 +293,9 @@ All five final-day submissions were lodged before the deadline and are still sco
 **Confirmed best: 0.953** (three submissions at that score). 41 scored submissions in total.
 **What actually worked all session:** adopting a verified public base. **What did not:** foreign weights in any role (0.92-0.93), candidate injection (0.922-0.923), our retrained refinement head (0.952 despite winning 2:1 offline), and every configuration knob (all flat at 0.947-0.948).
 **The two process lessons that cost the most:** (1) offline proxies on this data are anti-correlated with the LB when the change alters node counts or when the label subset is annotator-biased — only paired LB measurements counted; (2) GPU quota is account-wide and I spent the week's hours on experiments rather than reserving them for submissions, which forced the final day onto CPU.
+
+### CPU submissions are accepted but DO NOT SCORE
+Both completed final-day CPU submissions returned **blank public scores** with status COMPLETE (refs 56665356/56665494, 56671237/56671361 pending). A blank score means Kaggle's own **re-run** of the notebook failed, not that the predictions were bad — the same signature as the earlier stale-version mis-submit.
+**Cause:** the scoring re-run executes the submitted notebook against the hidden test with the kernel's own accelerator setting, i.e. CPU. Our CPU run needed 7.4 h for the four visible videos, so the re-run has no headroom and times out.
+**Correction to my earlier claim:** the CPU route *is* viable for producing a submission file locally (the user was right that a run is possible without GPU quota), but it is **not** viable for scoring a notebook-only competition — the constraint that matters is the re-run, not the authoring session. The only working path for this competition remains a GPU notebook, which the exhausted account-wide quota made impossible.
+**Final biohub result: 0.953.**
